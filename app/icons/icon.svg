@@ -1,0 +1,20 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="512" height="512">
+  <rect width="512" height="512" fill="#1A241D"/>
+  <!-- crescent moon -->
+  <circle cx="380" cy="120" r="44" fill="#D8B76E"/>
+  <circle cx="400" cy="108" r="40" fill="#1A241D"/>
+  <!-- stars -->
+  <circle cx="120" cy="110" r="5" fill="#E6CB86"/>
+  <circle cx="160" cy="170" r="3" fill="#E6CB86"/>
+  <circle cx="420" cy="230" r="3" fill="#E6CB86"/>
+  <!-- cork -->
+  <rect x="226" y="132" width="60" height="44" rx="8" fill="#B5873F" stroke="#E9DFC7" stroke-width="6"/>
+  <!-- bottle -->
+  <path d="M236 176 h40 v56 c58 20 96 70 96 130 c0 70 -52 108 -116 108 s-116 -38 -116 -108 c0 -60 38 -110 96 -130 z"
+        fill="#7E8F5E" stroke="#E9DFC7" stroke-width="8" stroke-linejoin="round"/>
+  <!-- label -->
+  <rect x="186" y="320" width="140" height="70" rx="6" fill="#E9DFC7"/>
+  <path d="M206 355 h100" stroke="#9C4A3A" stroke-width="6" stroke-linecap="round"/>
+  <!-- shine -->
+  <path d="M182 330 c0 -30 14 -56 36 -72" fill="none" stroke="#E9DFC7" stroke-width="8" stroke-linecap="round" opacity="0.6"/>
+</svg>

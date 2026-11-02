@@ -1,0 +1,93 @@
+/* Fonts are bundled so the app looks right with no internet */
+@font-face {
+  font-family: "IM Fell English";
+  src: url("fonts/im-fell-english.woff2") format("woff2");
+  font-style: normal;
+  font-weight: 400;
+  font-display: swap;
+}
+@font-face {
+  font-family: "IM Fell English";
+  src: url("fonts/im-fell-english-italic.woff2") format("woff2");
+  font-style: italic;
+  font-weight: 400;
+  font-display: swap;
+}
+@font-face {
+  font-family: "Karla";
+  src: url("fonts/karla.woff2") format("woff2");
+  font-style: normal;
+  font-weight: 200 800;
+  font-display: swap;
+}
+
+/* Palette from DESIGN.md */
+:root {
+  --forest-night: #1A241D;
+  --moss: #26352A;
+  --card-border: #4A5A44;
+  --parchment: #E9DFC7;
+  --muted: #B8AE95;
+  --candle-gold: #D8B76E;
+  --moon-highlight: #E6CB86;
+  --toadstool: #9C4A3A;
+  --amber: #B5873F;
+  --sage: #7E8F5E;
+  --dusk-blue: #6B7C8F;
+
+  --serif: "IM Fell English", Georgia, serif;
+  --sans: "Karla", -apple-system, system-ui, sans-serif;
+  color-scheme: dark;
+}
+
+* { box-sizing: border-box; }
+
+html, body {
+  margin: 0;
+  background: var(--forest-night);
+  color: var(--parchment);
+  font-family: var(--sans);
+  font-size: 17px;
+  line-height: 1.5;
+  -webkit-text-size-adjust: 100%;
+}
+
+.screen {
+  max-width: 480px;
+  margin: 0 auto;
+  min-height: 100vh;
+  /* Keep clear of the notch and home bar */
+  padding: calc(env(safe-area-inset-top) + 24px) 20px calc(env(safe-area-inset-bottom) + 24px);
+}
+
+h1, h2 {
+  font-family: var(--serif);
+  font-weight: 400;
+  margin: 0;
+}
+h1 { font-size: 2.1rem; line-height: 1.15; }
+h2 { font-size: 1.35rem; margin-bottom: 6px; }
+
+.top { margin-bottom: 24px; }
+
+.date {
+  margin: 0 0 4px;
+  color: var(--muted);
+  font-size: 0.95rem;
+}
+
+.card {
+  background: var(--moss);
+  border: 1px solid var(--card-border);
+  border-radius: 14px;
+  padding: 18px;
+}
+.card p { margin: 0; color: var(--muted); }
+
+.status {
+  margin-top: 20px;
+  font-size: 0.85rem;
+  color: var(--muted);
+  text-align: center;
+}
+.status.ready { color: var(--candle-gold); }

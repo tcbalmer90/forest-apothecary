@@ -1,0 +1,12 @@
+# Her health data: never on GitHub
+private/
+*.backup
+
+# Planning notes mention her medicines and doctor: keep them on this Mac only
+SPEC.md
+CLAUDE.md
+
+# Mac and tool clutter
+.DS_Store
+.claude/
+node_modules/
