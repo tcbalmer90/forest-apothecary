@@ -1,8 +1,10 @@
 // IndexedDB: the database built into Safari, stored only on the phone.
-// Every read and write goes through here, so Stage 3 can add encryption in one place.
+// Every read and write goes through here, so encryption can be added in one place later.
 
 const DB_NAME = 'apothecary';
-const DB_VERSION = 1;
+// Version 2 added a 'keys' store during a brief security trial. Safari refuses to open
+// a database at a lower version than the phone has, so this must never go back down.
+const DB_VERSION = 2;
 export const STORES = ['meds', 'entries'];
 
 let dbPromise;
@@ -11,7 +13,7 @@ function open() {
   dbPromise ||= new Promise((resolve, reject) => {
     const req = indexedDB.open(DB_NAME, DB_VERSION);
     req.onupgradeneeded = () => {
-      for (const name of STORES) {
+      for (const name of [...STORES, 'keys']) {
         if (!req.result.objectStoreNames.contains(name)) {
           req.result.createObjectStore(name, { keyPath: 'id' });
         }
@@ -33,6 +35,8 @@ async function run(store, mode, action) {
   });
 }
 
-export const getAll = (store) => run(store, 'readonly', (s) => s.getAll());
+// Encrypted records (shape { id, iv, data }) from the brief security trial can't be
+// read yet, so they stay hidden until encryption returns
+export const getAll = async (store) => (await run(store, 'readonly', (s) => s.getAll())).filter((r) => !r.iv);
 export const put = (store, record) => run(store, 'readwrite', (s) => s.put(record));
 export const remove = (store, id) => run(store, 'readwrite', (s) => s.delete(id));
