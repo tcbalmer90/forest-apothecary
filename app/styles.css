@@ -271,6 +271,9 @@ input[type="date"], input[type="time"] {
 }
 input::-webkit-date-and-time-value { text-align: left; }
 .when-row label { min-width: 0; }
+.when-row input { width: 100%; box-sizing: border-box; }
+/* Safety net: nothing in a sheet may be wider than the screen */
+.sheet { overflow-x: hidden; }
 
 /* Step-by-step questions */
 .flow { max-width: 480px; margin: 0 auto; }

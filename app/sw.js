@@ -1,6 +1,6 @@
 // Service worker: keeps a copy of the app on the phone so it works offline.
 // Change VERSION whenever any app file changes, so phones fetch the new copy.
-const VERSION = 'v5';
+const VERSION = 'v6';
 const CACHE = `apothecary-${VERSION}`;
 
 const FILES = [
