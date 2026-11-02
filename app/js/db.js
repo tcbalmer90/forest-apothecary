@@ -2,10 +2,11 @@
 // Every read and write goes through here, so encryption can be added in one place later.
 
 const DB_NAME = 'apothecary';
-// Version 2 added a 'keys' store during a brief security trial. Safari refuses to open
-// a database at a lower version than the phone has, so this must never go back down.
-const DB_VERSION = 2;
-export const STORES = ['meds', 'entries'];
+// Version 2 added a 'keys' store during a brief security trial; version 3 added 'settings'.
+// Safari refuses to open a database at a lower version than the phone has,
+// so this must never go back down.
+const DB_VERSION = 3;
+export const STORES = ['meds', 'entries', 'settings'];
 
 let dbPromise;
 

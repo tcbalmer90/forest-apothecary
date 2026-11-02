@@ -1,20 +1,26 @@
 // Everything she has logged, kept in memory while the app is open.
 //
-// A medicine: { id, name, colour, startTablets, kind: 'med' | 'hormone', order, archived }
+// A medicine: { id, name, colour, startTablets, kind: 'med' | 'hormone', order, archived,
+//   stockCount, stockAt, repeats, packSize, scriptExpiry, watchUse }
+//   Stock is optional: tablets left = stockCount minus doses logged after stockAt.
 // An entry is one of:
 //   dose:       { id, kind: 'dose', at, medId, medName, tablets }
 //   flare:      { id, kind: 'flare', at, pain, locations, types, triggers, symptoms, note }
 //   reflection: { id, kind: 'reflection', at, day, pain, fatigue, mood, sleep, bleeding,
 //                 period, sex, bowel, bladder, triggers, hormones }
 // "at" is the time in milliseconds; "day" is the evening it belongs to, e.g. "2026-11-02".
+// A setting: { id, value }, e.g. { id: 'doctor', value: 'Dr Smith' }
 
 import * as db from './db.js';
 import { dayKey } from './util.js';
 
-export const state = { meds: [], entries: [] };
+export const state = { meds: [], entries: [], settings: {} };
 
 export async function load() {
-  [state.meds, state.entries] = await Promise.all([db.getAll('meds'), db.getAll('entries')]);
+  const [meds, entries, settings] = await Promise.all(['meds', 'entries', 'settings'].map(db.getAll));
+  state.meds = meds;
+  state.entries = entries;
+  state.settings = Object.fromEntries(settings.map((s) => [s.id, s.value]));
 }
 
 function changed() {
@@ -31,6 +37,15 @@ export async function saveMed(med) {
   upsert(state.meds, med);
   changed();
 }
+
+export async function saveSetting(id, value) {
+  await db.put('settings', { id, value });
+  state.settings[id] = value;
+  changed();
+}
+
+// Her doctor's name is typed in on her phone, never written into the code
+export const doctorName = () => state.settings.doctor || 'your doctor';
 
 export async function saveEntry(entry) {
   await db.put('entries', entry);

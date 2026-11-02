@@ -3,6 +3,7 @@
 import { state, activeMeds, entryDay, reflectionFor } from './state.js';
 import { openDoseSheet, openMoreSheet, openFlare, openReflection, openEntry, describe } from './flows.js';
 import { bottleSVG } from './bottle.js';
+import { shelfNotes } from './stock.js';
 import { el, esc, dayKey, formatDay, reflectionDay } from './util.js';
 
 const SHELF_SIZE = 4;
@@ -29,6 +30,10 @@ export function renderToday(main) {
         </button>
         ${lastNight && !done ? '<p class="quiet">Last night\'s pages are done.</p>' : ''}
       </div>
+      <section class="card notes" hidden>
+        <h2>Notes from the shelf</h2>
+        <ul></ul>
+      </section>
       <section class="card so-far">
         <h2>So far today</h2>
         <div class="entry-list"></div>
@@ -61,6 +66,14 @@ export function renderToday(main) {
 
   view.querySelector('[data-flare]').addEventListener('click', () => openFlare());
   view.querySelector('[data-reflect]').addEventListener('click', () => openReflection(done || null));
+
+  // Running low, scripts expiring, using more than usual
+  const notes = shelfNotes();
+  if (notes.length) {
+    const card = view.querySelector('.notes');
+    card.hidden = false;
+    for (const n of notes) card.querySelector('ul').append(el(`<li>${esc(n.text)}</li>`));
+  }
 
   // Today's doses and flares, newest first
   const today = dayKey(now);

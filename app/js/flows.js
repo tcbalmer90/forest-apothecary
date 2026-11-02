@@ -4,6 +4,7 @@
 import { state, saveEntry, deleteEntry, activeMeds } from './state.js';
 import { openSheet, closeSheet, toast } from './sheet.js';
 import { bottleSVG } from './bottle.js';
+import { tabletsLeft } from './stock.js';
 import {
   uid, esc, el, formatTime, formatTablets, timeValue, dateValue, fromInputs, reflectionDay,
   stepTablets, toggleHalf,
@@ -37,7 +38,10 @@ export function openDoseSheet(med, entry = null) {
     <div class="dose">
       <div class="dose-head">
         ${bottleSVG(med.colour)}
-        <h2>${esc(name)}</h2>
+        <div>
+          <h2>${esc(name)}</h2>
+          ${tabletsLeft(med) != null ? `<p class="quiet left">${formatTablets(tabletsLeft(med))} left</p>` : ''}
+        </div>
       </div>
       <div class="stepper" role="group" aria-label="Tablets">
         <button class="round" data-step="-1" aria-label="Fewer tablets">−</button>

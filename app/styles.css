@@ -307,11 +307,40 @@ legend { color: var(--muted); font-size: 0.9rem; margin-bottom: 6px; }
 .swatch .bottle { width: 36px; height: 50px; }
 .stepper-row { display: flex; align-items: center; justify-content: space-between; color: var(--muted); }
 
+/* Stock fields */
+.stock { display: flex; flex-direction: column; gap: 12px; border-top: 1px solid var(--card-border); padding-top: 12px; }
+.field-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+.field-grid label { min-width: 0; }
+.med-form label.check, label.check {
+  flex-direction: row;
+  align-items: center;
+  gap: 12px;
+  min-height: 44px;
+  color: var(--parchment);
+  font-size: 1rem;
+}
+.check input { width: 24px; height: 24px; min-height: 0; flex: none; accent-color: var(--candle-gold); }
+.field { display: flex; flex-direction: column; gap: 4px; color: var(--muted); font-size: 0.9rem; }
+.dose-head .left { margin: 2px 0 0; }
+
+/* Notes from the shelf */
+.notes ul { margin: 0; padding: 0; list-style: none; }
+.notes li { position: relative; padding: 6px 0 6px 20px; }
+.notes li::before {
+  content: "";
+  position: absolute;
+  left: 2px; top: 15px;
+  width: 7px; height: 7px;
+  border-radius: 50%;
+  background: var(--candle-gold);
+}
+
 /* Settings list */
 .med-row { display: flex; align-items: center; gap: 8px; border-top: 1px solid var(--card-border); padding: 6px 0; }
 .med-row:first-child { border-top: 0; }
 .med-name { flex: 1; display: flex; align-items: center; gap: 12px; min-height: 48px; text-align: left; font-family: var(--serif); font-size: 1.15rem; }
 .med-name .bottle { width: 26px; height: 36px; }
+.med-name small { display: block; font-family: var(--sans); font-size: 0.85rem; color: var(--muted); }
 
 .more h2 { margin-bottom: 16px; }
 
