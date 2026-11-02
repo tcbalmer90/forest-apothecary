@@ -15,7 +15,7 @@ export const NUDGE_AFTER_DAYS = 7;
 // ---------- Sharing ----------
 
 // Opens the iPhone share sheet; falls back to a download on computers
-async function shareFile(file) {
+export async function shareFile(file) {
   if (navigator.canShare?.({ files: [file] })) {
     await navigator.share({ files: [file] });
     return;
@@ -28,7 +28,7 @@ async function shareFile(file) {
 }
 
 // Resolves true if she finished sharing, false if she closed the share sheet
-async function shareOrCancel(action) {
+export async function shareOrCancel(action) {
   try {
     await action();
     return true;

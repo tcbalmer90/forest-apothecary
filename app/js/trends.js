@@ -1,14 +1,14 @@
 // Trends: doses each month, time of day, pain week by week,
 // start markers for medicines, and a "Just for fun" moon chart.
 
-import { state } from './state.js';
+import { state, doctorName } from './state.js';
+import { openReport } from './report-ui.js';
 import { barChart, lineChart } from './charts.js';
 import { moonPhase, PHASE_NAMES } from './moon.js';
-import { el, esc, dayKey, dateFromKey, formatDay } from './util.js';
+import { el, esc, dayKey, dateFromKey, formatDay, addDays, daysBetween } from './util.js';
 
 const MONTHS = ['January', 'February', 'March', 'April', 'May', 'June', 'July',
   'August', 'September', 'October', 'November', 'December'];
-const DAY = 24 * 60 * 60 * 1000;
 const plural = (n, word) => `${n} ${word}${n === 1 ? '' : 's'}`;
 
 let chosen = 'all'; // which medicine the dose charts show
@@ -18,11 +18,14 @@ export function renderTrends(main) {
   const view = el(`
     <div>
       <header class="top"><h1>Trends</h1></header>
+      <button class="primary make-report" data-report>Make a report for ${esc(doctorName())}</button>
       <div class="chips filter" role="group" aria-label="Which medicine"></div>
       <div class="charts"></div>
       <h2 class="fun-heading">Just for fun</h2>
       <div class="fun"></div>
     </div>`);
+
+  view.querySelector('[data-report]').addEventListener('click', openReport);
 
   // Medicine filter, most logged first
   const counts = {};
@@ -130,11 +133,11 @@ function painChart() {
   if (!evenings.length) return null;
   const WEEKS = 26;
   // Weeks start on Monday
-  const today = dateFromKey(dayKey(new Date()));
-  const monday = new Date(today.getTime() - ((today.getDay() + 6) % 7) * DAY);
-  const starts = Array.from({ length: WEEKS }, (_, i) => new Date(monday.getTime() - (WEEKS - 1 - i) * 7 * DAY));
+  const today = new Date();
+  const monday = addDays(today, -((today.getDay() + 6) % 7));
+  const starts = Array.from({ length: WEEKS }, (_, i) => addDays(monday, -(WEEKS - 1 - i) * 7));
   const indexOf = (date) => {
-    const i = Math.floor((date - starts[0]) / (7 * DAY));
+    const i = Math.floor(daysBetween(starts[0], date) / 7);
     return i >= 0 && i < WEEKS ? i : null;
   };
 

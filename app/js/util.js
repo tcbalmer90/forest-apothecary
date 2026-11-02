@@ -16,6 +16,15 @@ export function dateFromKey(key) {
   return new Date(y, m - 1, d);
 }
 
+// Calendar days, ignoring daylight saving (a day can be 23 or 25 hours long)
+export function addDays(d, n) {
+  return new Date(d.getFullYear(), d.getMonth(), d.getDate() + n);
+}
+
+export function daysBetween(a, b) {
+  return Math.round((dateFromKey(dayKey(b)) - dateFromKey(dayKey(a))) / (24 * 60 * 60 * 1000));
+}
+
 // "Monday 2 November"
 export function formatDay(d) {
   return `${DAYS[d.getDay()]} ${d.getDate()} ${MONTHS[d.getMonth()]}`;
