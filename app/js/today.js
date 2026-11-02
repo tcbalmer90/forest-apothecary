@@ -7,6 +7,7 @@ import { shelfNotes } from './stock.js';
 import { needsNudge, backUpToFiles } from './backup.js';
 import { toast } from './sheet.js';
 import { moonPhase, moonSVG, nightsToFullText, sabbatText } from './moon.js';
+import { fernsSVG } from './ferns.js';
 import { el, esc, dayKey, formatDay, reflectionDay } from './util.js';
 
 const SHELF_SIZE = 4;
@@ -56,6 +57,7 @@ export function renderToday(main) {
         <h2>So far today</h2>
         <div class="entry-list"></div>
       </section>
+      ${fernsSVG()}
     </div>`);
 
   // Shelf: up to four bottles; if there are more, three plus a "More" bottle

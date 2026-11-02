@@ -1,0 +1,61 @@
+# Sends the daily "Time for your pages" notification at her chosen time.
+# Runs every 15 minutes; the script decides whether it's time in her time zone,
+# and a small cache entry per day makes sure it is sent only once.
+name: Daily reminder
+
+on:
+  schedule:
+    - cron: '*/15 * * * *'
+  workflow_dispatch:
+    inputs:
+      test:
+        description: 'Send a test reminder now'
+        type: boolean
+        default: true
+
+permissions:
+  contents: read
+
+concurrency:
+  group: reminder
+  cancel-in-progress: false
+
+jobs:
+  remind:
+    runs-on: ubuntu-latest
+    env:
+      PUSH_SETUP: ${{ secrets.PUSH_SETUP }}
+      VAPID_PRIVATE_KEY: ${{ secrets.VAPID_PRIVATE_KEY }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          sparse-checkout: .github/reminder
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+      - id: check
+        env:
+          FORCE: ${{ github.event_name == 'workflow_dispatch' && inputs.test }}
+        run: node .github/reminder/reminder.mjs check
+
+      - id: sent
+        if: steps.check.outputs.due == 'true'
+        uses: actions/cache/restore@v4
+        with:
+          path: .reminder-sent
+          key: reminder-sent-${{ steps.check.outputs.day }}
+          lookup-only: true
+
+      - if: steps.check.outputs.due == 'true' && steps.sent.outputs.cache-hit != 'true'
+        run: |
+          npm install --no-save --prefix .github/reminder web-push@3.6.7
+          node .github/reminder/reminder.mjs send
+          mkdir -p .reminder-sent && date > .reminder-sent/sent
+
+      - if: steps.check.outputs.due == 'true' && steps.sent.outputs.cache-hit != 'true'
+        uses: actions/cache/save@v4
+        with:
+          path: .reminder-sent
+          key: reminder-sent-${{ steps.check.outputs.day }}

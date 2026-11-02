@@ -1,6 +1,6 @@
 // Service worker: keeps a copy of the app on the phone so it works offline.
 // Change VERSION whenever any app file changes, so phones fetch the new copy.
-const VERSION = 'v14';
+const VERSION = 'v15';
 const CACHE = `apothecary-${VERSION}`;
 
 const FILES = [
@@ -26,6 +26,8 @@ const FILES = [
   'js/report.js',
   'js/report-ui.js',
   'js/pdf.js',
+  'js/ferns.js',
+  'js/reminder.js',
   'manifest.webmanifest',
   'fonts/im-fell-english.woff2',
   'fonts/im-fell-english-italic.woff2',
@@ -58,6 +60,26 @@ self.addEventListener('activate', (event) => {
 // The page asks which version is running, to show in Settings
 self.addEventListener('message', (event) => {
   if (event.data === 'version') event.source.postMessage({ version: VERSION });
+});
+
+// The daily reminder arrives: show it. The words never mention health.
+self.addEventListener('push', (event) => {
+  event.waitUntil(self.registration.showNotification('Time for your pages', {
+    icon: 'icons/icon-192.png',
+    badge: 'icons/icon-192.png',
+    tag: 'daily-pages',
+  }));
+});
+
+// Tapping the reminder opens the app (or brings it forward if it's already open)
+self.addEventListener('notificationclick', (event) => {
+  event.notification.close();
+  event.waitUntil(
+    self.clients.matchAll({ type: 'window', includeUncontrolled: true }).then((wins) => {
+      const open = wins.find((w) => w.url.startsWith(self.registration.scope));
+      return open ? open.focus() : self.clients.openWindow('./#today');
+    })
+  );
 });
 
 // Every request: use the saved copy first, fall back to the internet

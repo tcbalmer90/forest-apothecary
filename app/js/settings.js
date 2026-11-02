@@ -5,6 +5,7 @@ import { openSheet, closeSheet, toast } from './sheet.js';
 import { tabletsLeft, tracksStock, countedLabel } from './stock.js';
 import { bottleSVG, COLOURS } from './bottle.js';
 import { backupCards } from './backup-ui.js';
+import { reminderCard } from './reminder.js';
 import { el, esc, uid, formatTablets, stepTablets } from './util.js';
 
 export function renderSettings(main) {
@@ -31,7 +32,7 @@ export function renderSettings(main) {
       <div data-backups></div>
       <p class="status" id="offline-status"></p>
     </div>`);
-  view.querySelector('[data-backups]').replaceWith(...backupCards().children);
+  view.querySelector('[data-backups]').replaceWith(reminderCard(), ...backupCards().children);
 
   for (const list of view.querySelectorAll('.med-list')) {
     const meds = activeMeds(list.dataset.kind);
