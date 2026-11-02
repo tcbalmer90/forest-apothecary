@@ -4,9 +4,10 @@ import { load } from './state.js';
 import { isSheetOpen } from './sheet.js';
 import { renderToday } from './today.js';
 import { renderHistory } from './history.js';
+import { renderTrends } from './trends.js';
 import { renderSettings } from './settings.js';
 
-const screens = { today: renderToday, history: renderHistory, settings: renderSettings };
+const screens = { today: renderToday, history: renderHistory, trends: renderTrends, settings: renderSettings };
 const main = document.getElementById('main');
 
 function show() {

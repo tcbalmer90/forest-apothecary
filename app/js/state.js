@@ -1,7 +1,7 @@
 // Everything she has logged, kept in memory while the app is open.
 //
 // A medicine: { id, name, colour, startTablets, kind: 'med' | 'hormone', order, archived,
-//   stockCount, stockAt, repeats, packSize, scriptExpiry, watchUse }
+//   stockCount, stockAt, repeats, packSize, scriptExpiry, watchUse, startedOn }
 //   Stock is optional: tablets left = stockCount minus doses logged after stockAt.
 // An entry is one of:
 //   dose:       { id, kind: 'dose', at, medId, medName, tablets }

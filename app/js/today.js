@@ -6,6 +6,7 @@ import { bottleSVG } from './bottle.js';
 import { shelfNotes } from './stock.js';
 import { needsNudge, backUpToFiles } from './backup.js';
 import { toast } from './sheet.js';
+import { moonPhase, moonSVG, nightsToFullText, sabbatText } from './moon.js';
 import { el, esc, dayKey, formatDay, reflectionDay } from './util.js';
 
 const SHELF_SIZE = 4;
@@ -16,13 +17,20 @@ export function renderToday(main) {
   const tonight = reflectionDay(now);
   const yesterday = dayKey(new Date(now.getFullYear(), now.getMonth(), now.getDate() - 1));
   const done = reflectionFor(tonight);
+  const phase = moonPhase(now);
   const lastNight = tonight !== yesterday && reflectionFor(yesterday);
 
   const view = el(`
     <div>
-      <header class="top">
-        <p class="date">${formatDay(now)}</p>
-        <h1>Today's pages</h1>
+      <header class="top today-top">
+        <div>
+          <p class="date">${formatDay(now)}</p>
+          <h1>Today's pages</h1>
+        </div>
+        <div class="moon-box" title="${phase.name}">
+          ${moonSVG(now)}
+          <small>${nightsToFullText(phase)}</small>
+        </div>
       </header>
       <section class="shelf" aria-label="Your medicines"></section>
       <div class="main-buttons">
@@ -32,6 +40,10 @@ export function renderToday(main) {
         </button>
         ${lastNight && !done ? '<p class="quiet">Last night\'s pages are done.</p>' : ''}
       </div>
+      <section class="daily-note">
+        <svg class="star" viewBox="0 0 20 20" aria-hidden="true"><path d="M10 1.5l2.4 5.6 6.1.5-4.6 4 1.4 5.9L10 14.4l-5.3 3.1 1.4-5.9-4.6-4 6.1-.5z" fill="#D8B76E"/></svg>
+        <p>${esc(phase.line)} ${esc(sabbatText(now))}</p>
+      </section>
       <section class="card nudge" hidden>
         <p>It's been a week or more since your last backup. A quick one keeps your pages safe.</p>
         <button class="secondary" data-backup>Back up now</button>

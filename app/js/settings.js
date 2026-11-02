@@ -124,6 +124,7 @@ function openMedSheet(med, kind) {
           ${left != null && draft.packSize ? '<button type="button" class="secondary" data-box>I picked up a new box</button>' : ''}
           <label class="check"><input type="checkbox" data-watch ${draft.watchUse ? 'checked' : ''}> Let me know if I'm using this more than usual</label>
         </fieldset>` : ''}
+      <label>Started on, if you'd like it marked on your charts <input type="date" data-started value="${draft.startedOn || ''}"></label>
       <button class="primary" type="submit">Save</button>
       ${editing ? `<button type="button" class="link danger" data-archive>Take off the ${isMed ? 'shelf' : 'list'}</button>` : ''}
     </form>`);
@@ -148,6 +149,7 @@ function openMedSheet(med, kind) {
     ev.preventDefault();
     draft.name = field('name').value.trim();
     if (!draft.name) return;
+    draft.startedOn = field('started').value || null;
     if (isMed) {
       // A changed count starts a fresh tally from now; an unchanged one keeps counting down
       const count = numberOrNull('count');
