@@ -47,6 +47,14 @@ export async function saveSetting(id, value) {
 // Her doctor's name is typed in on her phone, never written into the code
 export const doctorName = () => state.settings.doctor || 'your doctor';
 
+// Many records at once (restoring, importing), with one refresh at the end
+export async function saveMany({ meds = [], entries = [], settings = [] }) {
+  for (const m of meds) { await db.put('meds', m); upsert(state.meds, m); }
+  for (const e of entries) { await db.put('entries', e); upsert(state.entries, e); }
+  for (const s of settings) { await db.put('settings', s); state.settings[s.id] = s.value; }
+  changed();
+}
+
 export async function saveEntry(entry) {
   await db.put('entries', entry);
   upsert(state.entries, entry);

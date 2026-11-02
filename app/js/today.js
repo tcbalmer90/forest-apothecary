@@ -4,6 +4,8 @@ import { state, activeMeds, entryDay, reflectionFor } from './state.js';
 import { openDoseSheet, openMoreSheet, openFlare, openReflection, openEntry, describe } from './flows.js';
 import { bottleSVG } from './bottle.js';
 import { shelfNotes } from './stock.js';
+import { needsNudge, backUpToFiles } from './backup.js';
+import { toast } from './sheet.js';
 import { el, esc, dayKey, formatDay, reflectionDay } from './util.js';
 
 const SHELF_SIZE = 4;
@@ -30,6 +32,10 @@ export function renderToday(main) {
         </button>
         ${lastNight && !done ? '<p class="quiet">Last night\'s pages are done.</p>' : ''}
       </div>
+      <section class="card nudge" hidden>
+        <p>It's been a week or more since your last backup. A quick one keeps your pages safe.</p>
+        <button class="secondary" data-backup>Back up now</button>
+      </section>
       <section class="card notes" hidden>
         <h2>Notes from the shelf</h2>
         <ul></ul>
@@ -73,6 +79,15 @@ export function renderToday(main) {
     const card = view.querySelector('.notes');
     card.hidden = false;
     for (const n of notes) card.querySelector('ul').append(el(`<li>${esc(n.text)}</li>`));
+  }
+
+  // A gentle weekly reminder to back up
+  if (needsNudge()) {
+    const nudge = view.querySelector('.nudge');
+    nudge.hidden = false;
+    nudge.querySelector('[data-backup]').addEventListener('click', () => backUpToFiles()
+      .then((done) => done && toast('Backed up. Thank you, future you.'))
+      .catch(() => toast('Something went wrong. Please try again.')));
   }
 
   // Today's doses and flares, newest first

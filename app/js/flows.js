@@ -106,6 +106,8 @@ export function openDoseSheet(med, entry = null) {
     const record = editing
       ? { ...entry, tablets, at: when.getTime() }
       : { id: uid(), kind: 'dose', at: when.getTime(), medId: med.id, medName: name, tablets };
+    // An imported dose with no time keeps "no time" unless she picks one
+    if (record.timeUnknown && root.querySelector('[data-time]').value !== startTime) delete record.timeUnknown;
     await saveEntry(record);
     closeSheet();
     if (!editing) {
@@ -336,7 +338,9 @@ export function openEntry(e) {
 // One-line summary, used on Today and in History
 export function describe(e) {
   if (e.kind === 'dose') {
-    return { time: formatTime(new Date(e.at)), text: e.tablets == null ? e.medName : `${e.medName} x${formatTablets(e.tablets)}` };
+    // Some doses from her old Notes history have no time
+    const time = e.timeUnknown ? '–' : formatTime(new Date(e.at));
+    return { time, text: e.tablets == null ? e.medName : `${e.medName} x${formatTablets(e.tablets)}` };
   }
   if (e.kind === 'flare') {
     const where = (e.locations || []).slice(0, 2).join(', ');
