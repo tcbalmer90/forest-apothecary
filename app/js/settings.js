@@ -34,6 +34,11 @@ export function renderSettings(main) {
   if (navigator.serviceWorker?.controller) {
     status.textContent = 'Ready to open without internet';
     status.classList.add('ready');
+    // Show which version is running, e.g. "Ready to open without internet · v5"
+    navigator.serviceWorker.addEventListener('message', (e) => {
+      if (e.data?.version) status.textContent = `Ready to open without internet · ${e.data.version}`;
+    }, { once: true });
+    navigator.serviceWorker.controller.postMessage('version');
   } else {
     status.textContent = 'Getting ready to work offline…';
   }
