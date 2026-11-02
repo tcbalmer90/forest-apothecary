@@ -1,10 +1,7 @@
-// Settings: her medicines and daily hormones, privacy, and whether the app is ready offline
+// Settings: her medicines and daily hormones, and whether the app is ready offline
 
 import { state, saveMed, activeMeds } from './state.js';
-import { openSheet, closeSheet, toast } from './sheet.js';
-import { phraseFlow, showLockLayer, hideLockLayer } from './lock.js';
-import { renewPhrase, renewFaceId } from './vault.js';
-import { newPhrase } from './crypto.js';
+import { openSheet, closeSheet } from './sheet.js';
 import { bottleSVG, COLOURS } from './bottle.js';
 import { el, esc, uid, formatTablets, stepTablets } from './util.js';
 
@@ -24,13 +21,6 @@ export function renderSettings(main) {
         <div class="med-list" data-kind="hormone"></div>
         <button class="secondary" data-add="hormone">Add a daily hormone</button>
       </section>
-      <section class="card">
-        <h2>Keeping it private</h2>
-        <p class="quiet">Your pages lock when you've been away for a minute.</p>
-        <button class="secondary" data-lock>Lock now</button>
-        <button class="secondary" data-phrase>Make a new recovery phrase</button>
-        <button class="secondary" data-faceid>Set up Face ID again</button>
-      </section>
       <p class="status" id="offline-status"></p>
     </div>`);
 
@@ -39,23 +29,6 @@ export function renderSettings(main) {
     meds.forEach((med, i) => list.append(medRow(med, meds, i)));
   }
   view.querySelectorAll('[data-add]').forEach((b) => b.addEventListener('click', () => openMedSheet(null, b.dataset.add)));
-
-  // Locking reloads the page, which clears her key from memory
-  view.querySelector('[data-lock]').addEventListener('click', () => location.reload());
-  view.querySelector('[data-phrase]').addEventListener('click', async () => {
-    showLockLayer();
-    const saved = await phraseFlow(newPhrase(), renewPhrase, { canCancel: true });
-    hideLockLayer();
-    toast(saved ? 'Your new recovery phrase is set. The old one no longer works.' : 'Your recovery phrase is unchanged.');
-  });
-  view.querySelector('[data-faceid]').addEventListener('click', async () => {
-    try {
-      await renewFaceId();
-      toast('Face ID is set up again.');
-    } catch {
-      toast("That didn't go through. Your old Face ID still works.");
-    }
-  });
 
   const status = view.querySelector('#offline-status');
   if (navigator.serviceWorker?.controller) {
