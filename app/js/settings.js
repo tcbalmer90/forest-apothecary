@@ -2,7 +2,7 @@
 
 import { state, saveMed, saveSetting, activeMeds } from './state.js';
 import { openSheet, closeSheet, toast } from './sheet.js';
-import { tabletsLeft, tracksStock } from './stock.js';
+import { tabletsLeft, tracksStock, countedLabel } from './stock.js';
 import { bottleSVG, COLOURS } from './bottle.js';
 import { el, esc, uid, formatTablets, stepTablets } from './util.js';
 
@@ -117,6 +117,7 @@ function openMedSheet(med, kind) {
             <label>Tablets in a box <input type="number" inputmode="numeric" min="1" step="1" data-pack value="${draft.packSize ?? ''}"></label>
             <label>Script expires <input type="date" data-expiry value="${draft.scriptExpiry || ''}"></label>
           </div>
+          ${left != null ? `<p class="quiet counted">Counted ${countedLabel(draft)}. Doses logged for before then don't change it.</p>` : ''}
           ${left != null && draft.packSize ? '<button type="button" class="secondary" data-box>I picked up a new box</button>' : ''}
           <label class="check"><input type="checkbox" data-watch ${draft.watchUse ? 'checked' : ''}> Let me know if I'm using this more than usual</label>
         </fieldset>` : ''}

@@ -2,7 +2,7 @@
 // Notes only ever point to her doctor or pharmacy. Nothing here suggests a dose.
 
 import { state, activeMeds, doctorName } from './state.js';
-import { dateFromKey, dayKey } from './util.js';
+import { dateFromKey, dayKey, friendlyDay, formatTime } from './util.js';
 
 const DAY = 24 * 60 * 60 * 1000;
 const LOW_DAYS = 5;        // "running low" when about this many days are left
@@ -13,6 +13,13 @@ const BASELINE_WEEKS = 8;  // her usual week is the average over the 8 weeks bef
 export const tracksStock = (med) => typeof med.stockCount === 'number';
 
 const dosesOf = (med) => state.entries.filter((e) => e.kind === 'dose' && e.medId === med.id);
+
+// "today at 8:20pm", "yesterday at 9:05am" or "Monday 2 November at 8:20pm"
+export function countedLabel(med) {
+  const d = new Date(med.stockAt);
+  const day = friendlyDay(dayKey(d));
+  return `${['Today', 'Yesterday'].includes(day) ? day.toLowerCase() : day} at ${formatTime(d)}`;
+}
 
 export function tabletsLeft(med) {
   if (!tracksStock(med)) return null;

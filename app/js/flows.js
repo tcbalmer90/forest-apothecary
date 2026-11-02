@@ -4,7 +4,7 @@
 import { state, saveEntry, deleteEntry, activeMeds } from './state.js';
 import { openSheet, closeSheet, toast } from './sheet.js';
 import { bottleSVG } from './bottle.js';
-import { tabletsLeft } from './stock.js';
+import { tabletsLeft, countedLabel } from './stock.js';
 import {
   uid, esc, el, formatTime, formatTablets, timeValue, dateValue, fromInputs, reflectionDay,
   stepTablets, toggleHalf,
@@ -53,6 +53,7 @@ export function openDoseSheet(med, entry = null) {
         ${editing ? `<label>Date <input type="date" data-date value="${dateValue(when)}"></label>` : ''}
         <label>Time <input type="time" data-time value="${timeValue(when)}"></label>
       </div>
+      <p class="quiet before-count" data-before hidden></p>
       <button class="primary" data-save>${editing ? 'Save' : 'Log it'}</button>
       ${editing ? '<button class="link danger" data-delete>Delete this dose</button>' : ''}
     </div>`);
@@ -76,13 +77,32 @@ export function openDoseSheet(med, entry = null) {
   // so compare with the starting value rather than waiting for a change event
   const startTime = timeValue(when);
 
-  root.querySelector('[data-save]').addEventListener('click', async () => {
+  function pickedTime() {
     const dateStr = editing ? root.querySelector('[data-date]').value : dateValue(new Date());
     const timeStr = root.querySelector('[data-time]').value;
     const timeChanged = editing || (timeStr && timeStr !== startTime);
-    when = timeChanged && timeStr ? fromInputs(dateStr || dateValue(when), timeStr) : new Date();
+    const picked = timeChanged && timeStr ? fromInputs(dateStr || dateValue(when), timeStr) : new Date();
     // A new dose picked for later than now (e.g. 11pm, logged after midnight) was yesterday
-    if (!editing && when.getTime() > Date.now() + 5 * 60 * 1000) when.setDate(when.getDate() - 1);
+    if (!editing && picked.getTime() > Date.now() + 5 * 60 * 1000) picked.setDate(picked.getDate() - 1);
+    return picked;
+  }
+
+  // A dose from before her stock count came out of the box before she counted it
+  const beforeNote = root.querySelector('[data-before]');
+  function explainCount() {
+    const before = med.stockAt && pickedTime().getTime() <= med.stockAt;
+    beforeNote.hidden = !before;
+    if (before) {
+      beforeNote.textContent = `This was before your stock count (${countedLabel(med)}), so tablets left stay at ${formatTablets(tabletsLeft(med))}.`;
+    }
+  }
+  for (const type of ['input', 'change', 'blur']) {
+    root.querySelectorAll('input').forEach((i) => i.addEventListener(type, explainCount));
+  }
+  explainCount();
+
+  root.querySelector('[data-save]').addEventListener('click', async () => {
+    when = pickedTime();
     const record = editing
       ? { ...entry, tablets, at: when.getTime() }
       : { id: uid(), kind: 'dose', at: when.getTime(), medId: med.id, medName: name, tablets };
