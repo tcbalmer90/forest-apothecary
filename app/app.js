@@ -15,15 +15,16 @@ document.getElementById('today-date').textContent = formatDate(new Date());
 const status = document.getElementById('offline-status');
 
 if ('serviceWorker' in navigator) {
-  navigator.serviceWorker.register('sw.js')
-    .then(() => navigator.serviceWorker.ready)
-    .then(() => {
-      status.textContent = 'Ready to open without internet';
-      status.classList.add('ready');
-    })
-    .catch(() => {
+  navigator.serviceWorker.ready.then(() => {
+    status.textContent = 'Ready to open without internet';
+    status.classList.add('ready');
+  });
+  // With no internet the update check fails, but the saved copy still works
+  navigator.serviceWorker.register('sw.js').catch(() => {
+    if (!navigator.serviceWorker.controller) {
       status.textContent = 'Offline mode could not be set up';
-    });
+    }
+  });
 } else {
   status.textContent = 'This browser cannot work offline';
 }
