@@ -261,6 +261,16 @@ input, textarea {
   color-scheme: dark;
 }
 textarea { resize: vertical; }
+/* iPhone Safari gives date and time boxes their own width unless its styling is switched off */
+input[type="date"], input[type="time"] {
+  -webkit-appearance: none;
+  appearance: none;
+  display: block;
+  min-width: 0;
+  max-width: 100%;
+}
+input::-webkit-date-and-time-value { text-align: left; }
+.when-row label { min-width: 0; }
 
 /* Step-by-step questions */
 .flow { max-width: 480px; margin: 0 auto; }

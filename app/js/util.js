@@ -41,6 +41,7 @@ export const timeValue = (d) => `${pad(d.getHours())}:${pad(d.getMinutes())}`;
 export const dateValue = (d) => dayKey(d);
 
 export function fromInputs(dateStr, timeStr) {
+  if (!dateStr || !timeStr) return new Date();
   const [y, m, d] = dateStr.split('-').map(Number);
   const [h, mi] = timeStr.split(':').map(Number);
   return new Date(y, m - 1, d, h, mi);

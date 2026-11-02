@@ -31,7 +31,6 @@ export function openDoseSheet(med, entry = null) {
   const editing = !!entry;
   let tablets = editing ? (entry.tablets ?? 1) : (med.startTablets || 1);
   let when = editing ? new Date(entry.at) : new Date();
-  let timeTouched = editing;
   const name = med.name;
 
   const root = el(`
@@ -69,12 +68,17 @@ export function openDoseSheet(med, entry = null) {
     tablets = toggleHalf(tablets);
     show();
   });
-  root.querySelector('[data-time]').addEventListener('change', () => { timeTouched = true; });
+  // iPhones don't always report a time change before "Log it" is tapped,
+  // so compare with the starting value rather than waiting for a change event
+  const startTime = timeValue(when);
 
   root.querySelector('[data-save]').addEventListener('click', async () => {
     const dateStr = editing ? root.querySelector('[data-date]').value : dateValue(new Date());
     const timeStr = root.querySelector('[data-time]').value;
-    when = timeTouched && timeStr ? fromInputs(dateStr || dateValue(when), timeStr) : new Date();
+    const timeChanged = editing || (timeStr && timeStr !== startTime);
+    when = timeChanged && timeStr ? fromInputs(dateStr || dateValue(when), timeStr) : new Date();
+    // A new dose picked for later than now (e.g. 11pm, logged after midnight) was yesterday
+    if (!editing && when.getTime() > Date.now() + 5 * 60 * 1000) when.setDate(when.getDate() - 1);
     const record = editing
       ? { ...entry, tablets, at: when.getTime() }
       : { id: uid(), kind: 'dose', at: when.getTime(), medId: med.id, medName: name, tablets };
@@ -114,6 +118,7 @@ export function openMoreSheet(meds) {
 
 // ---------- Step-by-step questions ----------
 // Each step: { key, title, type: 'scale' | 'single' | 'multi' | 'custom', options, render }
+// A custom step's render returns a function that reads its boxes just before saving.
 // Single-choice steps move on by themselves after a tap.
 
 function runSteps({ heading, steps, values, onSave, onDelete }) {
@@ -137,8 +142,9 @@ function runSteps({ heading, steps, values, onSave, onDelete }) {
     const body = root.querySelector('.flow-body');
     const actions = root.querySelector('.flow-actions');
 
+    let collect = null;
     if (step.type === 'custom') {
-      step.render(body, values);
+      collect = step.render(body, values);
     } else {
       const multi = step.type === 'multi';
       body.className = `flow-body chips ${step.type === 'scale' ? 'chips-scale' : ''}`;
@@ -164,7 +170,7 @@ function runSteps({ heading, steps, values, onSave, onDelete }) {
     const answered = step.type !== 'scale' && step.type !== 'single' ? true : values[step.key] != null;
     if (last) {
       const save = el('<button class="primary">Save</button>');
-      save.addEventListener('click', async () => { await onSave(values); closeSheet(); });
+      save.addEventListener('click', async () => { collect?.(); await onSave(values); closeSheet(); });
       actions.append(save);
     } else if (answered) {
       const nextBtn = el('<button class="secondary">Next</button>');
@@ -226,6 +232,7 @@ export function openFlare(entry = null) {
           };
           body.addEventListener('input', sync);
           sync();
+          return sync;
         },
       },
     ],
