@@ -50,44 +50,286 @@ html, body {
   font-size: 17px;
   line-height: 1.5;
   -webkit-text-size-adjust: 100%;
+  -webkit-tap-highlight-color: transparent;
 }
+body.sheet-open { overflow: hidden; }
 
 .screen {
   max-width: 480px;
   margin: 0 auto;
   min-height: 100vh;
-  /* Keep clear of the notch and home bar */
-  padding: calc(env(safe-area-inset-top) + 24px) 20px calc(env(safe-area-inset-bottom) + 24px);
+  /* Keep clear of the notch, and of the tab bar at the bottom */
+  padding: calc(env(safe-area-inset-top) + 24px) 20px calc(env(safe-area-inset-bottom) + 96px);
 }
 
-h1, h2 {
-  font-family: var(--serif);
-  font-weight: 400;
-  margin: 0;
-}
+h1, h2 { font-family: var(--serif); font-weight: 400; margin: 0; }
 h1 { font-size: 2.1rem; line-height: 1.15; }
-h2 { font-size: 1.35rem; margin-bottom: 6px; }
+h2 { font-size: 1.35rem; margin-bottom: 8px; }
 
-.top { margin-bottom: 24px; }
-
-.date {
-  margin: 0 0 4px;
-  color: var(--muted);
-  font-size: 0.95rem;
-}
+.top { margin-bottom: 20px; }
+.date { margin: 0 0 4px; color: var(--muted); font-size: 0.95rem; }
+.quiet { color: var(--muted); font-size: 0.95rem; margin: 6px 0 12px; }
 
 .card {
   background: var(--moss);
   border: 1px solid var(--card-border);
   border-radius: 14px;
-  padding: 18px;
+  padding: 16px 18px;
+  margin-bottom: 16px;
 }
-.card p { margin: 0; color: var(--muted); }
+.card p { margin-top: 0; }
 
-.status {
-  margin-top: 20px;
-  font-size: 0.85rem;
-  color: var(--muted);
-  text-align: center;
+/* ---------- Buttons ---------- */
+button, .button {
+  font: inherit;
+  color: inherit;
+  border: 0;
+  background: none;
+  cursor: pointer;
+  text-decoration: none;
 }
+button:disabled { opacity: 0.35; }
+button:focus-visible, a:focus-visible, input:focus-visible, textarea:focus-visible {
+  outline: 2px solid var(--candle-gold);
+  outline-offset: 2px;
+}
+
+.primary, .secondary {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  min-height: 54px;
+  padding: 10px 16px;
+  border-radius: 14px;
+  font-weight: 600;
+  font-size: 1.05rem;
+  margin-top: 12px;
+}
+.primary { background: var(--toadstool); color: var(--parchment); }
+.secondary { background: var(--moss); border: 1px solid var(--candle-gold); color: var(--parchment); }
+.secondary small { font-weight: 400; font-size: 0.85rem; color: var(--candle-gold); }
+.secondary.done { border-color: var(--card-border); }
+
+.link {
+  min-height: 44px;
+  padding: 0 4px;
+  color: var(--candle-gold);
+  font-size: 1rem;
+}
+.link.danger { color: #D99A8B; display: block; margin: 12px auto 0; }
+
+.round {
+  width: 52px;
+  height: 52px;
+  border-radius: 50%;
+  border: 1px solid var(--candle-gold);
+  font-size: 1.6rem;
+  line-height: 1;
+}
+.round.small { width: 44px; height: 44px; font-size: 1.1rem; flex: none; }
+
+/* ---------- Shelf of potion bottles ---------- */
+.shelf {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 8px;
+  margin-bottom: 8px;
+}
+.shelf-wrap { grid-template-columns: repeat(3, 1fr); row-gap: 16px; }
+.bottle-btn {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 2px;
+  border-radius: 12px;
+  min-height: 44px;
+}
+.bottle-btn:active { background: var(--moss); }
+.bottle-btn span {
+  font-family: var(--serif);
+  font-size: 0.95rem;
+  line-height: 1.15;
+  text-align: center;
+  overflow-wrap: anywhere;
+}
+.bottle { width: 48px; height: 67px; display: block; }
+
+.main-buttons { margin-bottom: 20px; }
+.main-buttons .quiet { text-align: center; }
+.empty-shelf .button { margin-top: 4px; }
+
+/* ---------- Entry rows (Today and History) ---------- */
+.entry {
+  display: flex;
+  gap: 14px;
+  width: 100%;
+  min-height: 48px;
+  padding: 10px 0;
+  text-align: left;
+  border-top: 1px solid var(--card-border);
+}
+.entry:first-of-type { border-top: 0; }
+.entry-time { flex: none; width: 4.6em; color: var(--candle-gold); font-variant-numeric: tabular-nums; }
+.entry-text small { display: block; color: var(--muted); font-size: 0.9rem; }
+.so-far .quiet, .days .quiet { margin: 0; }
+
+/* ---------- Tab bar ---------- */
+.tabs {
+  position: fixed;
+  left: 0; right: 0; bottom: 0;
+  display: flex;
+  justify-content: center;
+  gap: 8px;
+  padding: 6px 12px calc(env(safe-area-inset-bottom) + 6px);
+  background: var(--forest-night);
+  border-top: 1px solid var(--card-border);
+}
+.tabs a {
+  flex: 1;
+  max-width: 150px;
+  min-height: 48px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--muted);
+  text-decoration: none;
+  font-family: var(--serif);
+  font-size: 1.1rem;
+}
+.tabs a[aria-current] { color: var(--candle-gold); }
+
+/* ---------- Sheets ---------- */
+.backdrop {
+  position: fixed; inset: 0;
+  background: rgba(10, 14, 11, 0.7);
+  z-index: 10;
+}
+.sheet {
+  position: fixed;
+  left: 0; right: 0; bottom: 0;
+  max-height: 92vh;
+  overflow-y: auto;
+  z-index: 11;
+  background: var(--forest-night);
+  border-top: 1px solid var(--card-border);
+  border-radius: 20px 20px 0 0;
+  padding: 20px 20px calc(env(safe-area-inset-bottom) + 20px);
+  max-width: 480px;
+  margin: 0 auto;
+}
+.sheet.full {
+  top: 0;
+  max-height: none;
+  border-radius: 0;
+  border: 0;
+  padding-top: calc(env(safe-area-inset-top) + 8px);
+}
+
+/* Dose sheet */
+.dose-head { display: flex; align-items: center; gap: 14px; margin-bottom: 12px; }
+.dose-head h2 { margin: 0; font-size: 1.6rem; }
+.stepper { display: flex; align-items: center; justify-content: center; gap: 24px; margin: 8px 0 16px; }
+.stepper-value { min-width: 70px; text-align: center; }
+.stepper-value span { display: block; font-size: 2.4rem; font-weight: 600; line-height: 1.1; font-variant-numeric: tabular-nums; }
+.stepper-value small { color: var(--muted); }
+.stepper.small { margin: 0; gap: 14px; }
+.stepper.small span { min-width: 2em; text-align: center; font-size: 1.3rem; font-weight: 600; }
+.half { display: block; margin: -8px auto 12px; font-size: 0.95rem; }
+
+.when-row { display: flex; gap: 12px; }
+.when-row label, .med-form label, .note {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  color: var(--muted);
+  font-size: 0.9rem;
+}
+input, textarea {
+  font: inherit;
+  font-size: 1.05rem;
+  color: var(--parchment);
+  background: var(--moss);
+  border: 1px solid var(--card-border);
+  border-radius: 10px;
+  padding: 10px 12px;
+  min-height: 48px;
+  width: 100%;
+  color-scheme: dark;
+}
+textarea { resize: vertical; }
+
+/* Step-by-step questions */
+.flow { max-width: 480px; margin: 0 auto; }
+.flow-top { display: flex; align-items: center; justify-content: space-between; }
+.flow-count { color: var(--muted); font-size: 0.9rem; }
+.flow-heading { color: var(--candle-gold); margin: 16px 0 2px; font-size: 0.95rem; }
+.flow-title { font-size: 1.9rem; margin-bottom: 20px; }
+.chips { display: flex; flex-wrap: wrap; gap: 10px; }
+.chips-scale { display: grid; grid-template-columns: repeat(6, 1fr); }
+.chip {
+  min-height: 48px;
+  min-width: 48px;
+  padding: 8px 16px;
+  border-radius: 24px;
+  border: 1px solid var(--card-border);
+  background: var(--moss);
+}
+.chips-scale .chip { padding: 8px 0; font-size: 1.15rem; font-weight: 600; }
+.chip[aria-pressed="true"] { background: var(--candle-gold); border-color: var(--candle-gold); color: var(--forest-night); }
+.flow-body .note { margin-top: 16px; }
+.flow-actions { margin-top: 24px; }
+
+/* Medicine form */
+.med-form { display: flex; flex-direction: column; gap: 14px; }
+.med-form h2 { margin: 0; }
+fieldset { border: 0; padding: 0; margin: 0; }
+legend { color: var(--muted); font-size: 0.9rem; margin-bottom: 6px; }
+.swatches { display: flex; gap: 10px; }
+.swatch { padding: 6px 10px; border-radius: 12px; border: 1px solid transparent; }
+.swatch[aria-pressed="true"] { border-color: var(--candle-gold); background: var(--moss); }
+.swatch .bottle { width: 36px; height: 50px; }
+.stepper-row { display: flex; align-items: center; justify-content: space-between; color: var(--muted); }
+
+/* Settings list */
+.med-row { display: flex; align-items: center; gap: 8px; border-top: 1px solid var(--card-border); padding: 6px 0; }
+.med-row:first-child { border-top: 0; }
+.med-name { flex: 1; display: flex; align-items: center; gap: 12px; min-height: 48px; text-align: left; font-family: var(--serif); font-size: 1.15rem; }
+.med-name .bottle { width: 26px; height: 36px; }
+
+.more h2 { margin-bottom: 16px; }
+
+/* ---------- Toast ---------- */
+.toast {
+  position: fixed;
+  left: 16px; right: 16px;
+  bottom: calc(env(safe-area-inset-bottom) + 76px);
+  max-width: 448px;
+  margin: 0 auto;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 10px 10px 10px 16px;
+  border-radius: 14px;
+  background: var(--parchment);
+  color: var(--forest-night);
+  z-index: 20;
+  opacity: 0;
+  transform: translateY(12px);
+  pointer-events: none;
+  transition: opacity 0.2s, transform 0.2s;
+}
+.toast.show { opacity: 1; transform: none; pointer-events: auto; }
+.toast button { min-height: 44px; padding: 0 12px; font-weight: 600; color: var(--toadstool); }
+
+/* ---------- Offline status ---------- */
+.status { margin-top: 20px; font-size: 0.85rem; color: var(--muted); text-align: center; }
 .status.ready { color: var(--candle-gold); }
+
+@media (prefers-reduced-motion: reduce) {
+  .toast { transition: none; }
+}
