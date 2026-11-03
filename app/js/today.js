@@ -8,6 +8,7 @@ import { needsNudge, backUpToFiles } from './backup.js';
 import { toast } from './sheet.js';
 import { moonPhase, moonSVG, nightsToFullText, sabbatText } from './moon.js';
 import { fernsSVG } from './ferns.js';
+import { openNote } from './notes.js';
 import { el, esc, dayKey, formatDay, reflectionDay } from './util.js';
 
 const SHELF_SIZE = 4;
@@ -40,6 +41,7 @@ export function renderToday(main) {
           Evening reflection${done ? '<small>Done for tonight</small>' : ''}
         </button>
         ${lastNight && !done ? '<p class="quiet">Last night\'s pages are done.</p>' : ''}
+        <button class="link write-note" data-note>Write a note</button>
       </div>
       <section class="daily-note">
         <svg class="star" viewBox="0 0 20 20" aria-hidden="true"><path d="M10 1.5l2.4 5.6 6.1.5-4.6 4 1.4 5.9L10 14.4l-5.3 3.1 1.4-5.9-4.6-4 6.1-.5z" fill="#D8B76E"/></svg>
@@ -85,6 +87,7 @@ export function renderToday(main) {
   }
 
   view.querySelector('[data-flare]').addEventListener('click', () => openFlare());
+  view.querySelector('[data-note]').addEventListener('click', () => openNote());
   view.querySelector('[data-reflect]').addEventListener('click', () => openReflection(done || null));
 
   // Running low, scripts expiring, using more than usual

@@ -32,6 +32,8 @@ function askPhrase(made) {
   });
 }
 
+const count = (n, word) => `${n} ${word}${n === 1 ? '' : 's'}`;
+
 const failed = (e) => toast(e.message || 'Something went wrong. Please try again.');
 
 export function backupCards() {
@@ -105,7 +107,7 @@ function openImportSheet(history) {
   const root = el(`
     <form class="import">
       <h2>Your Notes history</h2>
-      <p class="quiet">${history.rows.length} doses from ${formatDay(dateFromKey(history.from))} ${history.from.slice(0, 4)}
+      <p class="quiet">${count(history.rows.length, 'dose')}${history.notes.length ? `, ${count(history.notes.length, 'day note')}` : ''}${history.appts.length ? ` and ${count(history.appts.length, 'appointment')}` : ''}, from ${formatDay(dateFromKey(history.from))} ${history.from.slice(0, 4)}
         to ${formatDay(dateFromKey(history.to))} ${history.to.slice(0, 4)}. Choose which medicine each name means.</p>
       ${Object.keys(counts).sort((a, b) => counts[b] - counts[a]).map((code) => `
         <label class="map-row">
@@ -126,7 +128,7 @@ function openImportSheet(history) {
     try {
       const result = await importHistory(history, mapping);
       closeSheet();
-      toast(`Brought in ${result.entries} doses from your Notes.`);
+      toast(`Brought in ${count(result.entries, 'dose')}${result.notes ? `, ${count(result.notes, 'day note')}` : ''}${result.appts ? ` and ${count(result.appts, 'appointment')}` : ''}.`);
     } catch (e) {
       btn.disabled = false;
       btn.textContent = 'Bring them in';

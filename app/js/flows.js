@@ -6,6 +6,7 @@ import { openSheet, closeSheet, toast } from './sheet.js';
 import { bottleSVG } from './bottle.js';
 import { tabletsLeft, countedLabel } from './stock.js';
 import { openAppointment } from './appointments.js';
+import { openNote } from './notes.js';
 import {
   uid, esc, el, formatTime, formatTablets, timeValue, dateValue, fromInputs, reflectionDay,
   stepTablets, toggleHalf,
@@ -340,6 +341,8 @@ export function openEntry(e) {
     openReflection(e);
   } else if (e.kind === 'appointment') {
     openAppointment(e);
+  } else if (e.kind === 'note') {
+    openNote(e);
   }
 }
 
@@ -353,6 +356,10 @@ export function describe(e) {
   if (e.kind === 'flare') {
     const where = (e.locations || []).slice(0, 2).join(', ');
     return { time: formatTime(new Date(e.at)), text: `Flare ${e.pain ?? '?'}/10`, sub: where };
+  }
+  if (e.kind === 'note') {
+    const first = e.text.split('\n')[0];
+    return { time: 'Note', text: first.length > 70 ? `${first.slice(0, 70)}…` : first };
   }
   if (e.kind === 'appointment') {
     return { time: 'Appt', text: 'Appointment', sub: (e.notes || '').split('\n')[0] };

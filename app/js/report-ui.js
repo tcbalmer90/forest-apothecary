@@ -203,6 +203,10 @@ export function reportPdf(r, s, doctor, include = SECTIONS.map(([k]) => k)) {
   if (has('sideEffects')) section('Side effects', [r.sideEffects || 'None noted.']);
   if (has('wellbeing')) section('Sleep, tiredness and mood', s.wellbeing);
   if (has('questions')) section(`Questions for ${doctor}`, [r.questions || 'None written.']);
+  if (has('notes')) {
+    pdf.write('Day notes', { size: 13, font: 'bold', gapAfter: 3 });
+    for (const line of s.notes) pdf.write(line, { size: 9.5, gapAfter: 3 });
+  }
 
   pdf.rule();
   pdf.write(`Made ${formatDay(r.now)} ${r.now.getFullYear()} with Forest Apothecary.`, { size: 8, colour: '#777777' });

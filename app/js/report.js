@@ -31,6 +31,7 @@ export function reportData({ start, now = new Date() } = {}) {
   const evenings = entries.filter((e) => e.kind === 'reflection').sort((a, b) => a.day.localeCompare(b.day));
   const flares = entries.filter((e) => e.kind === 'flare').sort((a, b) => a.at - b.at);
   const doses = entries.filter((e) => e.kind === 'dose');
+  const notes = entries.filter((e) => e.kind === 'note').sort((a, b) => a.day.localeCompare(b.day));
 
   // Week by week: average pain and tiredness, and flares
   const dayOf = (key) => daysBetween(start, dateFromKey(key));
@@ -83,6 +84,7 @@ export function reportData({ start, now = new Date() } = {}) {
     questions: state.settings.reportQuestions || '',
     sideEffects: state.settings.reportSideEffects || '',
     eveningsLogged: evenings.length,
+    notes,
     days,
     weeks,
     pain: {
@@ -140,9 +142,11 @@ export const SECTIONS = [
   ['sideEffects', 'Side effects'],
   ['wellbeing', 'Sleep, tiredness and mood'],
   ['questions', 'Questions'],
+  ['notes', 'Day notes'],
 ];
 
-export const chosenSections = () => state.settings.reportSections || SECTIONS.map(([k]) => k);
+// Everything is included at first except day notes, which can be long and personal
+export const chosenSections = () => state.settings.reportSections || SECTIONS.map(([k]) => k).filter((k) => k !== 'notes');
 
 const levelList = (rows) => rows.filter((r) => r.count).map((r) => `${r.name.toLowerCase()} ${r.count}`).join(', ') || 'none';
 
@@ -176,6 +180,9 @@ export function sentences(r) {
     ? r.meds.map((m) => `${m.name}: ${m.doses} ${m.doses === 1 ? 'dose' : 'doses'} on ${m.days} ${m.days === 1 ? 'day' : 'days'}${m.tablets ? `, ${m.tablets} tablets` : ''} (first half ${m.firstHalf}, second half ${m.secondHalf}).`)
     : ['No medicines logged.'];
   s.hormones = r.hormones.map((h) => `${h.name}: ticked on ${h.taken} of ${h.of} evenings.`);
+  s.notes = r.notes.length
+    ? r.notes.map((n) => `${formatDay(dateFromKey(n.day))}: ${n.text.replace(/\s*\n\s*/g, ' ')}`)
+    : ['No day notes in this period.'];
   s.wellbeing = [
     `Sleep: ${levelList(r.sleep)}.`,
     `Tiredness: average ${r.fatigue.average ?? '–'}/10 (first half ${r.fatigue.firstHalf ?? '–'}, second half ${r.fatigue.secondHalf ?? '–'}).`,

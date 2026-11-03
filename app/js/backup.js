@@ -187,21 +187,30 @@ export async function summaryToNotes() {
 }
 
 // ---------- Her history from the Notes app ----------
-// A list of [date "YYYY-MM-DD", medicine code, tablets or null, hour or null]
+// Either a list of doses, or { doses, notes, appointments } where:
+//   doses:        [date "YYYY-MM-DD", medicine code, tablets or null, hour or null]
+//   notes:        [date, text]   (her day-by-day diary)
+//   appointments: [date, notes]
+
+const isDay = (d) => /^\d{4}-\d{2}-\d{2}$/.test(d);
 
 export async function readHistory(file) {
-  let rows;
+  let data;
   try {
-    rows = JSON.parse(await file.text());
+    data = JSON.parse(await file.text());
   } catch {
     throw new Error("That file couldn't be read.");
   }
-  const ok = Array.isArray(rows) && rows.length && rows.every((r) => Array.isArray(r)
-    && /^\d{4}-\d{2}-\d{2}$/.test(r[0]) && typeof r[1] === 'string');
-  if (!ok) throw new Error("That doesn't look like a medicine history file.");
+  const rows = Array.isArray(data) ? data : data?.doses || [];
+  const notes = Array.isArray(data) ? [] : data?.notes || [];
+  const appts = Array.isArray(data) ? [] : data?.appointments || [];
+  const ok = rows.every((r) => Array.isArray(r) && isDay(r[0]) && typeof r[1] === 'string')
+    && [...notes, ...appts].every((n) => Array.isArray(n) && isDay(n[0]) && typeof n[1] === 'string')
+    && rows.length + notes.length + appts.length > 0;
+  if (!ok) throw new Error("That doesn't look like a history file.");
   const names = [...new Set(rows.map((r) => r[1]))];
-  const dates = rows.map((r) => r[0]).sort();
-  return { rows, names, from: dates[0], to: dates.at(-1) };
+  const dates = [...rows, ...notes, ...appts].map((r) => r[0]).sort();
+  return { rows, notes, appts, names, from: dates[0], to: dates.at(-1) };
 }
 
 // "night_drops" -> "Night drops"
@@ -218,7 +227,7 @@ export function guessMed(code) {
 
 // mapping: { code: medId | null }. null adds a new medicine, kept off the shelf.
 // Imported entries have fixed ids, so importing the same file twice adds nothing new.
-export async function importHistory({ rows }, mapping) {
+export async function importHistory({ rows, notes = [], appts = [] }, mapping) {
   const newMeds = [];
   const medFor = {};
   let order = Math.max(0, ...state.meds.map((m) => m.order + 1));
@@ -253,6 +262,13 @@ export async function importHistory({ rows }, mapping) {
     };
   });
 
-  await saveMany({ meds: newMeds, entries });
-  return { entries: entries.length, newMeds: newMeds.map((m) => m.name) };
+  // Day notes and appointments: fixed ids per date, so importing twice adds nothing new
+  const noon = (day) => { const d = dateFromKey(day); d.setHours(12); return d.getTime(); };
+  const count = {};
+  const nth = (key) => { count[key] = (count[key] || 0) + 1; return count[key]; };
+  const dayNotes = notes.map(([day, text]) => ({ id: `imp-note-${day}-${nth(`n${day}`)}`, kind: 'note', day, at: noon(day), text, imported: true }));
+  const visits = appts.map(([day, text]) => ({ id: `imp-appt-${day}-${nth(`a${day}`)}`, kind: 'appointment', day, at: noon(day), notes: text, imported: true }));
+
+  await saveMany({ meds: newMeds, entries: [...entries, ...dayNotes, ...visits] });
+  return { entries: entries.length, notes: dayNotes.length, appts: visits.length, newMeds: newMeds.map((m) => m.name) };
 }

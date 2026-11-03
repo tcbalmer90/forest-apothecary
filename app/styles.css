@@ -159,6 +159,7 @@ button:focus-visible, a:focus-visible, input:focus-visible, textarea:focus-visib
 
 .main-buttons { margin-bottom: 20px; }
 .main-buttons .quiet { text-align: center; }
+.write-note { display: block; margin: 6px auto 0; }
 .empty-shelf .button { margin-top: 4px; }
 
 /* ---------- Entry rows (Today and History) ---------- */

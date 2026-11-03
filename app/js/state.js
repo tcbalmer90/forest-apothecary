@@ -8,6 +8,8 @@
 //   flare:      { id, kind: 'flare', at, pain, locations, types, triggers, symptoms, note }
 //   reflection: { id, kind: 'reflection', at, day, pain, fatigue, mood, sleep, bleeding,
 //                 period, sex, bowel, bladder, triggers, hormones }
+//   note:        { id, kind: 'note', at, day, text }
+//   appointment: { id, kind: 'appointment', at, day, notes }
 // "at" is the time in milliseconds; "day" is the evening it belongs to, e.g. "2026-11-02".
 // A setting: { id, value }, e.g. { id: 'doctor', value: 'Dr Smith' }
 
@@ -74,8 +76,9 @@ export function activeMeds(kind = 'med') {
     .sort((a, b) => a.order - b.order);
 }
 
+// Reflections, notes and appointments belong to a calendar day; the rest to their time
 export function entryDay(e) {
-  return e.kind === 'reflection' ? e.day : dayKey(new Date(e.at));
+  return e.day || dayKey(new Date(e.at));
 }
 
 export function reflectionFor(day) {
