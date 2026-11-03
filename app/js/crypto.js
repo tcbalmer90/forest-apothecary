@@ -6,6 +6,7 @@
 //   - with a key from the recovery phrase, for a new phone or if Face ID stops working
 
 import { WORDS } from './words.js';
+import { PHRASE_WORDS } from './phrase-words.js';
 
 const enc = new TextEncoder();
 const dec = new TextDecoder();
@@ -80,10 +81,24 @@ export { sealedToText, sealedFromText };
 
 // ---------- Recovery phrase ----------
 
-// 12 words, each picked fairly from 256 (one random byte each)
+export const PHRASE_LENGTH = 4;
+
+// 4 words, each picked fairly from 1,296. Random numbers above the largest
+// multiple of 1,296 are thrown away, so no word is more likely than another.
 export function newPhrase() {
-  return [...randomBytes(12)].map((b) => WORDS[b]).join(' ');
+  const n = PHRASE_WORDS.length;
+  const limit = 65536 - (65536 % n);
+  const picked = [];
+  while (picked.length < PHRASE_LENGTH) {
+    for (const v of crypto.getRandomValues(new Uint16Array(8))) {
+      if (v < limit && picked.length < PHRASE_LENGTH) picked.push(PHRASE_WORDS[v % n]);
+    }
+  }
+  return picked.join(' ');
 }
+
+// Phrases made before November 2026 were 12 woodland words; they still work
+export const phraseLengthOk = (phrase) => [PHRASE_LENGTH, 12].includes(normalisePhrase(phrase).split(' ').length);
 
 export function normalisePhrase(phrase) {
   return phrase.toLowerCase().trim().split(/[\s,.-]+/).filter(Boolean).join(' ');
@@ -91,5 +106,5 @@ export function normalisePhrase(phrase) {
 
 // Words she typed that aren't on the list (likely typos)
 export function unknownWords(phrase) {
-  return normalisePhrase(phrase).split(' ').filter((w) => w && !WORDS.includes(w));
+  return normalisePhrase(phrase).split(' ').filter((w) => w && !PHRASE_WORDS.includes(w) && !WORDS.includes(w));
 }

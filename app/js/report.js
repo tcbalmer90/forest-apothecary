@@ -1,10 +1,12 @@
-// The six-week report for her doctor: the numbers behind the report screen and the PDF.
+// The report for her doctor: the numbers behind the report screen and the PDF.
+// It covers a period she chooses (usually since her last appointment), and compares
+// the first half of that period with the second.
 // Only facts she logged, never advice. The moon chart is deliberately not part of it.
 
 import { state, entryDay, activeMeds } from './state.js';
 import { dayKey, dateFromKey, formatDay, addDays, daysBetween } from './util.js';
 
-export const WEEKS = 6;
+export const DEFAULT_WEEKS = 6;
 
 const avg = (list) => (list.length ? Math.round((list.reduce((a, b) => a + b, 0) / list.length) * 10) / 10 : null);
 
@@ -18,8 +20,10 @@ function countBy(evenings, key, order) {
   return order.map((level) => ({ name: level, count: evenings.filter((e) => e[key] === level).length }));
 }
 
-export function reportData(now = new Date()) {
-  const start = addDays(now, -(WEEKS * 7 - 1));
+export function reportData({ start, now = new Date() } = {}) {
+  start = start ? dateFromKey(dayKey(start)) : addDays(now, -(DEFAULT_WEEKS * 7 - 1));
+  const days = daysBetween(start, now) + 1;
+  const weekCount = Math.max(1, Math.ceil(days / 7));
   const from = dayKey(start);
   const to = dayKey(now);
   const inRange = (e) => { const k = entryDay(e); return k >= from && k <= to; };
@@ -29,8 +33,10 @@ export function reportData(now = new Date()) {
   const doses = entries.filter((e) => e.kind === 'dose');
 
   // Week by week: average pain and tiredness, and flares
-  const weekOf = (key) => Math.floor(daysBetween(start, dateFromKey(key)) / 7);
-  const weeks = Array.from({ length: WEEKS }, (_, i) => {
+  const dayOf = (key) => daysBetween(start, dateFromKey(key));
+  const weekOf = (key) => Math.floor(dayOf(key) / 7);
+  const firstHalf = (key) => dayOf(key) < days / 2;
+  const weeks = Array.from({ length: weekCount }, (_, i) => {
     const begins = addDays(start, i * 7);
     const ev = evenings.filter((e) => weekOf(e.day) === i);
     return {
@@ -44,24 +50,24 @@ export function reportData(now = new Date()) {
   });
 
   const painEvenings = evenings.filter((e) => e.pain != null);
-  const half = (list, first) => list.filter((e) => (weekOf(e.day) < WEEKS / 2) === first);
+  const half = (list, first) => list.filter((e) => firstHalf(e.day) === first);
   const worst = painEvenings.reduce((w, e) => (!w || e.pain > w.pain ? e : w), null);
 
   const periodDays = evenings.filter((e) => e.period === 'Yes');
   const otherDays = evenings.filter((e) => e.period === 'No');
   const sexDays = evenings.filter((e) => e.sex && e.sex !== 'No');
 
-  // Medicines, most used first, comparing the first three weeks with the last three
+  // Medicines, most used first, comparing the first half of the period with the second
   const byMed = {};
   for (const d of doses) {
     const m = (byMed[d.medId] ||= { name: d.medName, doses: 0, tablets: 0, days: new Set(), firstHalf: 0, secondHalf: 0 });
     m.doses += 1;
     m.tablets += d.tablets ?? 0;
     m.days.add(entryDay(d));
-    if (weekOf(entryDay(d)) < WEEKS / 2) m.firstHalf += 1; else m.secondHalf += 1;
+    if (firstHalf(entryDay(d))) m.firstHalf += 1; else m.secondHalf += 1;
   }
   const meds = Object.values(byMed)
-    .map((m) => ({ ...m, days: m.days.size, perWeek: Math.round((m.doses / WEEKS) * 10) / 10 }))
+    .map((m) => ({ ...m, days: m.days.size, perWeek: Math.round((m.doses / (days / 7)) * 10) / 10 }))
     .sort((a, b) => b.doses - a.doses);
 
   const hormones = activeMeds('hormone').map((h) => ({
@@ -77,7 +83,7 @@ export function reportData(now = new Date()) {
     questions: state.settings.reportQuestions || '',
     sideEffects: state.settings.reportSideEffects || '',
     eveningsLogged: evenings.length,
-    days: WEEKS * 7,
+    days,
     weeks,
     pain: {
       average: avg(painEvenings.map((e) => e.pain)),
@@ -118,7 +124,25 @@ export function reportData(now = new Date()) {
 
 // ---------- Plain sentences, shared by the screen and the PDF ----------
 
-export const rangeText = (r) => `${formatDay(r.start)} to ${formatDay(r.now)} ${r.now.getFullYear()}`;
+export const rangeText = (r) => {
+  const sameYear = r.start.getFullYear() === r.now.getFullYear();
+  return `${formatDay(r.start)}${sameYear ? '' : ` ${r.start.getFullYear()}`} to ${formatDay(r.now)} ${r.now.getFullYear()}`;
+};
+
+// The parts of the report she can tick on or off, in order
+export const SECTIONS = [
+  ['pain', 'Pain'],
+  ['flares', 'Flares'],
+  ['triggers', 'Triggers'],
+  ['key', 'Key symptoms'],
+  ['bleeding', 'Bleeding'],
+  ['meds', 'Medicines'],
+  ['sideEffects', 'Side effects'],
+  ['wellbeing', 'Sleep, tiredness and mood'],
+  ['questions', 'Questions'],
+];
+
+export const chosenSections = () => state.settings.reportSections || SECTIONS.map(([k]) => k);
 
 const levelList = (rows) => rows.filter((r) => r.count).map((r) => `${r.name.toLowerCase()} ${r.count}`).join(', ') || 'none';
 
@@ -128,7 +152,7 @@ export function sentences(r) {
     ? ['No evening reflections in these six weeks.']
     : [
       `Average evening pain ${r.pain.average}/10, from ${r.eveningsLogged} of ${r.days} evenings.`,
-      `First three weeks ${r.pain.firstHalf ?? '–'}/10, last three weeks ${r.pain.secondHalf ?? '–'}/10.`,
+      `First half of the period ${r.pain.firstHalf ?? '–'}/10, second half ${r.pain.secondHalf ?? '–'}/10.`,
       `Highest: ${r.pain.worst.pain}/10 on ${formatDay(dateFromKey(r.pain.worst.day))}.`,
     ];
   s.flares = r.flares.count
@@ -149,12 +173,12 @@ export function sentences(r) {
   ];
   s.bleeding = [`Bleeding by evening: ${levelList(r.bleeding)}.`];
   s.meds = r.meds.length
-    ? r.meds.map((m) => `${m.name}: ${m.doses} ${m.doses === 1 ? 'dose' : 'doses'} on ${m.days} ${m.days === 1 ? 'day' : 'days'}${m.tablets ? `, ${m.tablets} tablets` : ''} (first three weeks ${m.firstHalf}, last three ${m.secondHalf}).`)
+    ? r.meds.map((m) => `${m.name}: ${m.doses} ${m.doses === 1 ? 'dose' : 'doses'} on ${m.days} ${m.days === 1 ? 'day' : 'days'}${m.tablets ? `, ${m.tablets} tablets` : ''} (first half ${m.firstHalf}, second half ${m.secondHalf}).`)
     : ['No medicines logged.'];
   s.hormones = r.hormones.map((h) => `${h.name}: ticked on ${h.taken} of ${h.of} evenings.`);
   s.wellbeing = [
     `Sleep: ${levelList(r.sleep)}.`,
-    `Tiredness: average ${r.fatigue.average ?? '–'}/10 (first three weeks ${r.fatigue.firstHalf ?? '–'}, last three ${r.fatigue.secondHalf ?? '–'}).`,
+    `Tiredness: average ${r.fatigue.average ?? '–'}/10 (first half ${r.fatigue.firstHalf ?? '–'}, second half ${r.fatigue.secondHalf ?? '–'}).`,
     `Mood: ${levelList(r.mood)}.`,
   ];
   return s;

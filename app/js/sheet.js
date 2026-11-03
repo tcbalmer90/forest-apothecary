@@ -13,6 +13,8 @@ export function openSheet(content, { full = false } = {}) {
   panel.setAttribute('aria-modal', 'true');
   panel.append(content);
   if (!full) backdrop.addEventListener('click', closeSheet);
+  // Full-screen questions have their answers at the bottom: don't let a message cover them
+  if (full) document.getElementById('toast').classList.remove('show');
   root().append(backdrop, panel);
   document.body.classList.add('sheet-open');
   current = { backdrop, panel };

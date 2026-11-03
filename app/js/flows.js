@@ -5,6 +5,7 @@ import { state, saveEntry, deleteEntry, activeMeds } from './state.js';
 import { openSheet, closeSheet, toast } from './sheet.js';
 import { bottleSVG } from './bottle.js';
 import { tabletsLeft, countedLabel } from './stock.js';
+import { openAppointment } from './appointments.js';
 import {
   uid, esc, el, formatTime, formatTablets, timeValue, dateValue, fromInputs, reflectionDay,
   stepTablets, toggleHalf,
@@ -145,6 +146,7 @@ export function openMoreSheet(meds) {
 // ---------- Step-by-step questions ----------
 // Each step: { key, title, type: 'scale' | 'single' | 'multi' | 'custom', options, render }
 // A custom step's render returns a function that reads its boxes just before saving.
+// The answers and buttons sit at the bottom of the screen, within reach of one thumb.
 // Single-choice steps move on by themselves after a tap.
 
 function runSteps({ heading, steps, values, onSave, onDelete }) {
@@ -156,17 +158,24 @@ function runSteps({ heading, steps, values, onSave, onDelete }) {
     const last = i === steps.length - 1;
     root.innerHTML = `
       <div class="flow-top">
-        <button class="link" data-back>${i === 0 ? 'Close' : 'Back'}</button>
+        <button class="link" data-close>Close</button>
         <span class="flow-count">${i + 1} of ${steps.length}</span>
-        <button class="link" data-close>${i === 0 ? '' : 'Close'}</button>
       </div>
       <p class="flow-heading">${esc(heading)}</p>
       <h2 class="flow-title">${esc(step.title)}</h2>
-      <div class="flow-body"></div>
-      <div class="flow-actions"></div>`;
+      <div class="flow-bottom">
+        <div class="flow-body"></div>
+        <div class="flow-actions"><div class="flow-row"></div></div>
+      </div>`;
 
     const body = root.querySelector('.flow-body');
     const actions = root.querySelector('.flow-actions');
+    const row = root.querySelector('.flow-row');
+    if (i > 0) {
+      const back = el('<button class="secondary back">Back</button>');
+      back.addEventListener('click', () => { i -= 1; render(); });
+      row.append(back);
+    }
 
     let collect = null;
     if (step.type === 'custom') {
@@ -197,11 +206,11 @@ function runSteps({ heading, steps, values, onSave, onDelete }) {
     if (last) {
       const save = el('<button class="primary">Save</button>');
       save.addEventListener('click', async () => { collect?.(); await onSave(values); closeSheet(); });
-      actions.append(save);
+      row.append(save);
     } else if (answered) {
       const nextBtn = el('<button class="secondary">Next</button>');
       nextBtn.addEventListener('click', next);
-      actions.append(nextBtn);
+      row.append(nextBtn);
     }
     if (onDelete) {
       const del = el('<button class="link danger">Delete</button>');
@@ -213,9 +222,6 @@ function runSteps({ heading, steps, values, onSave, onDelete }) {
       actions.append(del);
     }
 
-    root.querySelector('[data-back]').addEventListener('click', () => {
-      if (i === 0) closeSheet(); else { i -= 1; render(); }
-    });
     root.querySelector('[data-close]').addEventListener('click', closeSheet);
     root.scrollTop = 0;
   }
@@ -332,6 +338,8 @@ export function openEntry(e) {
     openFlare(e);
   } else if (e.kind === 'reflection') {
     openReflection(e);
+  } else if (e.kind === 'appointment') {
+    openAppointment(e);
   }
 }
 
@@ -345,6 +353,9 @@ export function describe(e) {
   if (e.kind === 'flare') {
     const where = (e.locations || []).slice(0, 2).join(', ');
     return { time: formatTime(new Date(e.at)), text: `Flare ${e.pain ?? '?'}/10`, sub: where };
+  }
+  if (e.kind === 'appointment') {
+    return { time: 'Appt', text: 'Appointment', sub: (e.notes || '').split('\n')[0] };
   }
   return { time: 'Evening', text: 'Evening reflection', sub: e.pain != null ? `pain ${e.pain}/10` : '' };
 }

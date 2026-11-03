@@ -9,6 +9,7 @@ import { newPhrase } from './crypto.js';
 import { bottleSVG, COLOURS } from './bottle.js';
 import { backupCards } from './backup-ui.js';
 import { reminderCard } from './reminder.js';
+import { openAppointment, appointmentList, appointments } from './appointments.js';
 import { el, esc, uid, formatTablets, stepTablets } from './util.js';
 
 export function renderSettings(main) {
@@ -31,6 +32,9 @@ export function renderSettings(main) {
         <h2>Your doctor</h2>
         <p class="quiet">Used in gentle notes, like "worth mentioning to …". Stays on this phone.</p>
         <label class="field">Name <input type="text" data-doctor maxlength="40" autocomplete="off" autocapitalize="words" placeholder="your doctor" value="${esc(state.settings.doctor || '')}"></label>
+        <h3 class="sub">Appointments</h3>
+        <div data-appts></div>
+        <button class="secondary" data-appt>Log an appointment</button>
       </section>
       <section class="card">
         <h2>Keeping it private</h2>
@@ -50,6 +54,10 @@ export function renderSettings(main) {
   }
   view.querySelectorAll('[data-add]').forEach((b) => b.addEventListener('click', () => openMedSheet(null, b.dataset.add)));
   view.querySelector('[data-doctor]').addEventListener('change', (e) => saveSetting('doctor', e.target.value.trim()));
+  const appts = view.querySelector('[data-appts]');
+  if (appointments().length) appts.replaceWith(appointmentList());
+  else appts.replaceWith(el('<p class="quiet">None logged yet. Your report can start from your last one.</p>'));
+  view.querySelector('[data-appt]').addEventListener('click', () => openAppointment());
 
   // Locking reloads the page, which clears her key from memory
   view.querySelector('[data-lock]').addEventListener('click', () => location.reload());

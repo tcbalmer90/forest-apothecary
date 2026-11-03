@@ -3,8 +3,8 @@
 
 import { el, esc, pickFile } from './util.js';
 import { bottleSVG } from './bottle.js';
-import { WORDS } from './words.js';
-import { newPhrase, unknownWords, normalisePhrase } from './crypto.js';
+import { PHRASE_WORDS } from './phrase-words.js';
+import { newPhrase, unknownWords, phraseLengthOk } from './crypto.js';
 import { NoPrfError, passkeysAvailable } from './passkey.js';
 import {
   prepareFaceId, startPhraseOnly, finishVault, unlockWithFaceId, unlockWithPhrase, renewFaceId, adoptBackupKey,
@@ -70,8 +70,8 @@ export function setUp() {
       const p = screen(`
         <form class="lock-screen">
           <h1>Open your backup</h1>
-          <p>Type your 12 words, in order, with spaces between them.</p>
-          <textarea rows="4" data-words autocapitalize="none" autocomplete="off" autocorrect="off" spellcheck="false" aria-label="Recovery phrase"></textarea>
+          <p>Type the words of your recovery phrase, in order, with spaces between them.</p>
+          <textarea rows="3" data-words autocapitalize="none" autocomplete="off" autocorrect="off" spellcheck="false" aria-label="Recovery phrase"></textarea>
           <button class="primary" type="submit">Restore my pages</button>
           <button type="button" class="link" data-back>Back</button>
           <p class="lock-msg" role="alert"></p>
@@ -130,9 +130,10 @@ export function setUp() {
 export function phraseFlow(phrase, save, { canCancel = false } = {}) {
   return new Promise((resolve) => {
     const words = phrase.split(' ');
+    const CHECKS = 2;
     const picks = [];
-    while (picks.length < 3) {
-      const i = Math.floor(Math.random() * 12);
+    while (picks.length < CHECKS) {
+      const i = Math.floor(Math.random() * words.length);
       if (!picks.includes(i)) picks.push(i);
     }
     picks.sort((a, b) => a - b);
@@ -141,7 +142,7 @@ export function phraseFlow(phrase, save, { canCancel = false } = {}) {
       const s = screen(`
         <div class="lock-screen">
           <h1>Your recovery phrase</h1>
-          <p>If Face ID stops working, or you move to a new phone, these 12 words open your pages. Write them on paper, in order, and keep it somewhere safe.</p>
+          <p>If Face ID stops working, or you move to a new phone, these 4 words open your pages, and your backups. Write them on paper, in order, and keep it somewhere safe.</p>
           <ol class="phrase">${words.map((w) => `<li>${esc(w)}</li>`).join('')}</ol>
           <p class="quiet">No one can reset them for you, so please don't skip this.</p>
           <button class="primary" data-next>I've written them down</button>
@@ -155,13 +156,13 @@ export function phraseFlow(phrase, save, { canCancel = false } = {}) {
       const i = picks[n];
       const options = [words[i]];
       while (options.length < 4) {
-        const w = WORDS[Math.floor(Math.random() * WORDS.length)];
+        const w = PHRASE_WORDS[Math.floor(Math.random() * PHRASE_WORDS.length)];
         if (!options.includes(w)) options.push(w);
       }
       options.sort(() => Math.random() - 0.5);
       const s = screen(`
         <div class="lock-screen">
-          <p class="flow-heading">Check ${n + 1} of 3</p>
+          <p class="flow-heading">Check ${n + 1} of ${CHECKS}</p>
           <h1>Which is word ${i + 1}?</h1>
           <div class="chips">${options.map((w) => `<button class="chip">${esc(w)}</button>`).join('')}</div>
           <p class="lock-msg" role="alert"></p>
@@ -169,7 +170,7 @@ export function phraseFlow(phrase, save, { canCancel = false } = {}) {
         </div>`);
       s.querySelectorAll('.chip').forEach((c) => c.addEventListener('click', async () => {
         if (c.textContent !== words[i]) return say(s, 'Not quite. Have another look at your paper.');
-        if (n < 2) return check(n + 1);
+        if (n < CHECKS - 1) return check(n + 1);
         say(s, 'Locking your pages…');
         s.querySelectorAll('button').forEach((b) => { b.disabled = true; });
         try {
@@ -219,8 +220,8 @@ export function unlock(vault) {
       const s = screen(`
         <form class="lock-screen">
           <h1>Recovery phrase</h1>
-          <p>Type your 12 words, in order, with spaces between them.</p>
-          <textarea rows="4" data-words autocapitalize="none" autocomplete="off" autocorrect="off" spellcheck="false" aria-label="Recovery phrase"></textarea>
+          <p>Type your recovery phrase, in order, with spaces between the words.</p>
+          <textarea rows="3" data-words autocapitalize="none" autocomplete="off" autocorrect="off" spellcheck="false" aria-label="Recovery phrase"></textarea>
           <button class="primary" type="submit">Open my pages</button>
           ${vault.mode === 'faceid' ? '<button type="button" class="link" data-face>Use Face ID instead</button>' : ''}
           <p class="lock-msg" role="alert"></p>
@@ -231,7 +232,7 @@ export function unlock(vault) {
         const typed = s.querySelector('[data-words]').value;
         const unknown = unknownWords(typed);
         if (unknown.length) return say(s, `These aren't on the word list: ${unknown.join(', ')}. Check the spelling.`);
-        if (normalisePhrase(typed).split(' ').length !== 12) return say(s, 'That needs all 12 words.');
+        if (!phraseLengthOk(typed)) return say(s, 'That needs all the words of your phrase (4, or 12 for an older one).');
         const btn = s.querySelector('[type=submit]');
         btn.disabled = true;
         say(s, 'Opening…');
