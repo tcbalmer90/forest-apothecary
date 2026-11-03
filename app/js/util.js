@@ -79,6 +79,15 @@ export function esc(s) {
   ));
 }
 
+// Opens the Files picker; resolves with the chosen file, or null
+export function pickFile(accept) {
+  return new Promise((resolve) => {
+    const input = Object.assign(document.createElement('input'), { type: 'file', accept });
+    input.addEventListener('change', () => resolve(input.files[0] || null), { once: true });
+    input.click();
+  });
+}
+
 export function el(html) {
   const t = document.createElement('template');
   t.innerHTML = html.trim();

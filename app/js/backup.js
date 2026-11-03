@@ -1,9 +1,14 @@
 // Backups: a full copy to Files, a readable summary to Notes, restoring,
 // and bringing in her old medicine history from the Notes app.
 // Nothing leaves the phone unless she chooses where to send it in the share sheet.
-// Until Protection is added, backups are plain (unencrypted) files.
+// A backup file is locked: its records are encrypted with her data key, and the file
+// also holds that key sealed with her recovery phrase. So the phrase alone opens it,
+// on this phone or a new one. The Notes summary is plain text on purpose.
 
 import { state, activeMeds, entryDay, saveMany, saveSetting } from './state.js';
+import { sealWithKey } from './db.js';
+import { backupLock, keyFromBackup } from './vault.js';
+import { importDataKey, decryptJSON, sealedToText, sealedFromText } from './crypto.js';
 import { describe } from './flows.js';
 import { tabletsLeft, tracksStock } from './stock.js';
 import { dayKey, dateFromKey, formatDay, formatTablets, uid } from './util.js';
@@ -40,22 +45,27 @@ export async function shareOrCancel(action) {
 
 // ---------- Full backup ----------
 
-export function makeBackup() {
-  return {
-    app: APP,
-    version: 1,
-    createdAt: Date.now(),
+export async function makeBackup() {
+  const records = {
     meds: state.meds,
     entries: state.entries,
     settings: Object.entries(state.settings)
       .filter(([id]) => id !== 'lastBackupAt')
       .map(([id, value]) => ({ id, value })),
   };
+  return {
+    app: APP,
+    version: 2,
+    createdAt: Date.now(),
+    count: records.entries.length,
+    lock: await backupLock(),
+    payload: sealedToText(await sealWithKey(records)),
+  };
 }
 
 export async function backUpToFiles() {
   const file = new File(
-    [JSON.stringify(makeBackup())],
+    [JSON.stringify(await makeBackup())],
     `pages-backup-${dayKey(new Date())}.json`,
     { type: 'application/json' },
   );
@@ -71,10 +81,27 @@ export async function readBackup(file) {
   } catch {
     throw new Error("That file isn't a backup from this app.");
   }
-  if (data?.app !== APP || !Array.isArray(data.entries) || !Array.isArray(data.meds)) {
+  const plain = Array.isArray(data?.entries) && Array.isArray(data?.meds);
+  const locked = data?.lock && data?.payload;
+  if (data?.app !== APP || !(plain || locked)) {
     throw new Error("That file isn't a backup from this app.");
   }
   return data;
+}
+
+// Backups made during her trial, before Protection, are plain and need no phrase
+export const isLocked = (data) => !!data.payload;
+
+// Opens a locked backup with the recovery phrase in use when it was made
+export async function openBackup(data, phrase) {
+  let keyBytes;
+  try {
+    keyBytes = await keyFromBackup(data.lock, phrase);
+  } catch {
+    throw new Error("Those words don't open this backup. Check the order and spelling.");
+  }
+  const records = await decryptJSON(await importDataKey(keyBytes), sealedFromText(data.payload));
+  return { ...records, keyBytes };
 }
 
 // Restoring adds back everything in the backup. Nothing already in the app is removed.

@@ -444,6 +444,44 @@ select {
 .toast.show { opacity: 1; transform: none; pointer-events: auto; }
 .toast button { min-height: 44px; padding: 0 12px; font-weight: 600; color: var(--toadstool); }
 
+/* ---------- Lock screens ---------- */
+body.locked main, body.locked .tabs, body.locked #sheet-root { display: none; }
+body:not(.locked) #lock { display: none; }
+#lock { padding-bottom: calc(env(safe-area-inset-bottom) + 32px); }
+.lock-screen { display: flex; flex-direction: column; gap: 14px; padding-top: 6vh; }
+.lock-screen > .bottle { width: 64px; height: 90px; margin: 0 auto 8px; }
+.lock-screen h1 { text-align: left; }
+.lock-screen > p { margin: 0; }
+.lock-screen .primary { margin-top: 8px; }
+.lock-screen .link { align-self: center; }
+.lock-screen .chips { margin-top: 8px; }
+.lock-msg { min-height: 1.5em; color: var(--candle-gold); text-align: center; }
+.phrase {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px 16px;
+  margin: 4px 0;
+  padding: 16px 16px 16px 40px;
+  background: var(--moss);
+  border: 1px dashed var(--candle-gold);
+  border-radius: 14px;
+  font-family: var(--serif);
+  font-size: 1.25rem;
+}
+.phrase li::marker { color: var(--muted); font-family: var(--sans); font-size: 0.85rem; }
+
+/* ---------- App switcher cover ---------- */
+#cover {
+  display: none;
+  position: fixed; inset: 0;
+  z-index: 100;
+  background: var(--forest-night);
+  align-items: center;
+  justify-content: center;
+}
+#cover img { width: 96px; height: 96px; border-radius: 22px; }
+body.covered #cover { display: flex; }
+
 /* ---------- Offline status ---------- */
 .status { margin-top: 20px; font-size: 0.85rem; color: var(--muted); text-align: center; }
 .status.ready { color: var(--candle-gold); }

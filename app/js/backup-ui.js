@@ -4,8 +4,9 @@ import { state } from './state.js';
 import { openSheet, closeSheet, toast } from './sheet.js';
 import {
   backUpToFiles, summaryToNotes, readBackup, restore, readHistory, importHistory, guessMed, prettyName,
+  isLocked, openBackup,
 } from './backup.js';
-import { el, esc, formatDay, dateFromKey, dayKey } from './util.js';
+import { el, esc, formatDay, dateFromKey, dayKey, pickFile } from './util.js';
 
 function lastBackupText() {
   const last = state.settings.lastBackupAt;
@@ -14,12 +15,20 @@ function lastBackupText() {
   return `Last backup: ${dayKey(d) === dayKey(new Date()) ? 'today' : formatDay(d)}.`;
 }
 
-// A hidden file picker, opened by a button
-function pickFile(accept) {
+// Asks for the recovery phrase that opens a locked backup
+function askPhrase(made) {
   return new Promise((resolve) => {
-    const input = Object.assign(document.createElement('input'), { type: 'file', accept });
-    input.addEventListener('change', () => resolve(input.files[0] || null), { once: true });
-    input.click();
+    const root = el(`
+      <form class="med-form">
+        <h2>Open this backup</h2>
+        <p class="quiet">Type the recovery phrase you had when this backup was made (${esc(made)}).</p>
+        <textarea rows="4" data-words autocapitalize="none" autocomplete="off" autocorrect="off" spellcheck="false" aria-label="Recovery phrase"></textarea>
+        <button class="primary" type="submit">Open it</button>
+        <button class="link" type="button" data-cancel>Not now</button>
+      </form>`);
+    root.addEventListener('submit', (ev) => { ev.preventDefault(); resolve(root.querySelector('[data-words]').value); closeSheet(); });
+    root.querySelector('[data-cancel]').addEventListener('click', () => { resolve(null); closeSheet(); });
+    openSheet(root);
   });
 }
 
@@ -30,7 +39,7 @@ export function backupCards() {
     <div>
       <section class="card">
         <h2>Backups</h2>
-        <p class="quiet">${lastBackupText()} Backups aren't locked yet, so keep them somewhere private.</p>
+        <p class="quiet">${lastBackupText()} Backups are locked: only your recovery phrase opens them. The Notes summary is plain words, readable by anyone who can open your Notes.</p>
         <button class="secondary" data-files>Back up to Files</button>
         <button class="secondary" data-notes>Save a summary to Notes</button>
         <button class="secondary" data-restore>Restore from a backup</button>
@@ -52,11 +61,16 @@ export function backupCards() {
     const file = await pickFile('.json,application/json');
     if (!file) return;
     try {
-      const data = await readBackup(file);
+      let data = await readBackup(file);
       const made = formatDay(new Date(data.createdAt));
+      if (isLocked(data)) {
+        const phrase = await askPhrase(made);
+        if (!phrase) return;
+        data = await openBackup(data, phrase);
+      }
       if (!confirm(`Bring back ${data.entries.length} entries from the backup made ${made}? Nothing already here is removed.`)) return;
       const n = await restore(data);
-      toast(`Brought back ${n.entries} entries and ${n.meds} medicines.`);
+      toast(`Brought back ${n.entries} ${n.entries === 1 ? 'entry' : 'entries'} and ${n.meds} ${n.meds === 1 ? 'medicine' : 'medicines'}.`);
     } catch (e) {
       failed(e);
     }

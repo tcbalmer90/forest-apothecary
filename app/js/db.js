@@ -1,14 +1,20 @@
 // IndexedDB: the database built into Safari, stored only on the phone.
-// Every read and write goes through here, so encryption can be added in one place later.
+// Every record is encrypted before it is stored: on disk it is just
+// { id, iv, data } where data is unreadable without her key.
+
+import { encryptJSON, decryptJSON } from './crypto.js';
 
 const DB_NAME = 'apothecary';
-// Version 2 added a 'keys' store during a brief security trial; version 3 added 'settings'.
+// Version 2 added the 'keys' store; version 3 added 'settings'.
 // Safari refuses to open a database at a lower version than the phone has,
 // so this must never go back down.
 const DB_VERSION = 3;
 export const STORES = ['meds', 'entries', 'settings'];
 
 let dbPromise;
+let key = null; // her data key, only while unlocked
+
+export function setKey(k) { key = k; }
 
 function open() {
   dbPromise ||= new Promise((resolve, reject) => {
@@ -36,8 +42,41 @@ async function run(store, mode, action) {
   });
 }
 
-// Encrypted records (shape { id, iv, data }) from the brief security trial can't be
-// read yet, so they stay hidden until encryption returns
-export const getAll = async (store) => (await run(store, 'readonly', (s) => s.getAll())).filter((r) => !r.iv);
-export const put = (store, record) => run(store, 'readwrite', (s) => s.put(record));
+function needKey() {
+  if (!key) throw new Error('Locked');
+}
+
+export async function getAll(store) {
+  needKey();
+  const rows = await run(store, 'readonly', (s) => s.getAll());
+  // Rows without an iv were saved before encryption; encryptLeftovers() locks them
+  return Promise.all(rows.map((r) => (r.iv ? decryptJSON(key, r) : r)));
+}
+
+export async function put(store, record) {
+  needKey();
+  const { iv, data } = await encryptJSON(key, record);
+  return run(store, 'readwrite', (s) => s.put({ id: record.id, iv, data }));
+}
+
+// Encrypt anything with her data key (used for backup files)
+export async function sealWithKey(value) {
+  needKey();
+  return encryptJSON(key, value);
+}
+
 export const remove = (store, id) => run(store, 'readwrite', (s) => s.delete(id));
+
+// The vault holds sealed keys, never health information, so it is stored as is
+export const getVault = () => run('keys', 'readonly', (s) => s.get('vault'));
+export const putVault = (vault) => run('keys', 'readwrite', (s) => s.put(vault));
+
+// Entries saved during her trial (before Protection) were not encrypted: encrypt them now.
+// Safe to run on every unlock: it only touches rows that are still plain.
+export async function encryptLeftovers() {
+  needKey();
+  for (const store of STORES) {
+    const rows = await run(store, 'readonly', (s) => s.getAll());
+    for (const row of rows.filter((r) => !r.iv)) await put(store, row);
+  }
+}

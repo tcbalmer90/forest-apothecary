@@ -1,8 +1,11 @@
-// Settings: her medicines and daily hormones, her doctor, backups, and whether the app is ready offline
+// Settings: her medicines and daily hormones, her doctor, privacy, backups, and whether the app is ready offline
 
 import { state, saveMed, saveSetting, activeMeds } from './state.js';
 import { openSheet, closeSheet, toast } from './sheet.js';
 import { tabletsLeft, tracksStock, countedLabel } from './stock.js';
+import { phraseFlow, showLockLayer, hideLockLayer } from './lock.js';
+import { renewPhrase, renewFaceId } from './vault.js';
+import { newPhrase } from './crypto.js';
 import { bottleSVG, COLOURS } from './bottle.js';
 import { backupCards } from './backup-ui.js';
 import { reminderCard } from './reminder.js';
@@ -29,6 +32,13 @@ export function renderSettings(main) {
         <p class="quiet">Used in gentle notes, like "worth mentioning to …". Stays on this phone.</p>
         <label class="field">Name <input type="text" data-doctor maxlength="40" autocomplete="off" autocapitalize="words" placeholder="your doctor" value="${esc(state.settings.doctor || '')}"></label>
       </section>
+      <section class="card">
+        <h2>Keeping it private</h2>
+        <p class="quiet">Your pages lock when you've been away for a minute.</p>
+        <button class="secondary" data-lock>Lock now</button>
+        <button class="secondary" data-phrase>Make a new recovery phrase</button>
+        <button class="secondary" data-faceid>Set up Face ID again</button>
+      </section>
       <div data-backups></div>
       <p class="status" id="offline-status"></p>
     </div>`);
@@ -40,6 +50,23 @@ export function renderSettings(main) {
   }
   view.querySelectorAll('[data-add]').forEach((b) => b.addEventListener('click', () => openMedSheet(null, b.dataset.add)));
   view.querySelector('[data-doctor]').addEventListener('change', (e) => saveSetting('doctor', e.target.value.trim()));
+
+  // Locking reloads the page, which clears her key from memory
+  view.querySelector('[data-lock]').addEventListener('click', () => location.reload());
+  view.querySelector('[data-phrase]').addEventListener('click', async () => {
+    showLockLayer();
+    const saved = await phraseFlow(newPhrase(), renewPhrase, { canCancel: true });
+    hideLockLayer();
+    toast(saved ? 'Your new phrase is set. Make a fresh backup: older backups still open with the old phrase.' : 'Your recovery phrase is unchanged.');
+  });
+  view.querySelector('[data-faceid]').addEventListener('click', async () => {
+    try {
+      await renewFaceId();
+      toast('Face ID is set up again.');
+    } catch {
+      toast("That didn't go through. Your old Face ID still works.");
+    }
+  });
 
   const status = view.querySelector('#offline-status');
   if (navigator.serviceWorker?.controller) {
