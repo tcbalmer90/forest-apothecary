@@ -25,6 +25,30 @@ function screen(html) {
 
 function say(node, text) { node.querySelector('.lock-msg').textContent = text; }
 
+// One more Face ID, after a fresh tap (iPhones want a tap before each Face ID request).
+// Resolves with what fn returns; a passkey that can't give a secret rejects.
+export function tapToFinish(fn) {
+  return new Promise((resolve, reject) => {
+    const s = screen(`
+      <div class="lock-screen">
+        ${bottleSVG('sage')}
+        <h1>One more Face ID</h1>
+        <p>Your passkey is saved. One more look finishes setting up Face ID for your pages.</p>
+        <button class="primary" data-go>Finish with Face ID</button>
+        <p class="lock-msg" role="alert"></p>
+      </div>`);
+    s.querySelector('[data-go]').addEventListener('click', async () => {
+      say(s, '');
+      try {
+        resolve(await fn());
+      } catch (e) {
+        if (e instanceof NoPrfError) reject(e);
+        else say(s, "That didn't go through. Tap to try again.");
+      }
+    });
+  });
+}
+
 // ---------- First set-up ----------
 
 export function setUp() {
@@ -44,11 +68,11 @@ export function setUp() {
         say(s, '');
         if (!passkeysAvailable()) return noFaceId();
         try {
-          const face = await prepareFaceId();
+          const face = await prepareFaceId(tapToFinish);
           phraseFlow(newPhrase(), (phrase) => finishVault(face, phrase)).then(resolve);
         } catch (e) {
-          if (e instanceof NoPrfError) noFaceId();
-          else say(s, "That didn't go through. Try again when you're ready.");
+          if (e instanceof NoPrfError) noFaceId(e.reason);
+          else { intro(); say(box(), "That didn't go through. Try again when you're ready."); }
         }
       });
     }
@@ -94,7 +118,7 @@ export function setUp() {
         }
         say(p, 'Now Face ID, so it opens easily from here on.');
         try {
-          await adoptBackupKey(records.keyBytes, data.lock, { faceId: passkeysAvailable() });
+          await adoptBackupKey(records.keyBytes, data.lock, { faceId: passkeysAvailable(), askTap: tapToFinish });
         } catch (e) {
           // No Face ID on this phone (or she cancelled): the phrase still opens it
           if (!(e instanceof NoPrfError)) say(p, 'Face ID was skipped. You can set it up later in Settings.');
@@ -105,13 +129,16 @@ export function setUp() {
       });
     }
 
-    function noFaceId() {
+    function noFaceId(reason = 'no-passkeys') {
       const s = screen(`
         <div class="lock-screen">
-          <h1>Face ID isn't available</h1>
-          <p>Opening with Face ID needs iOS 18 or later. You can still lock your pages with a recovery phrase, but you'll type it each time you open the app.</p>
+          <h1>Face ID couldn't be set up</h1>
+          <p>This usually means the passkey was saved in a password app other than Apple's Passwords, and that app can't unlock your pages.</p>
+          <p>In the iPhone Settings app, go to <b>General</b>, then <b>AutoFill &amp; Passwords</b>, and turn on <b>Passwords</b>. Then tap "Try Face ID again", and if asked where to save the passkey, choose <b>Passwords</b>.</p>
+          <p>Or lock your pages with your recovery phrase instead, and type it each time you open the app. You can switch to Face ID later in Settings.</p>
           <button class="primary" data-phrase>Use a phrase instead</button>
           <button class="link" data-retry>Try Face ID again</button>
+          <p class="quiet center small">Reason: ${esc(reason)}</p>
         </div>`);
       s.querySelector('[data-retry]').addEventListener('click', intro);
       s.querySelector('[data-phrase]').addEventListener('click', async () => {
@@ -259,7 +286,7 @@ export function unlock(vault) {
       s.querySelector('[data-no]').addEventListener('click', () => resolve());
       s.querySelector('[data-yes]').addEventListener('click', async () => {
         try {
-          await renewFaceId();
+          await renewFaceId(tapToFinish);
           resolve();
         } catch {
           say(s, "That didn't go through. You can try again later from Settings.");

@@ -1,14 +1,21 @@
-// Face ID through a passkey (WebAuthn). The passkey lives in her iCloud Keychain.
+// Face ID through a passkey (WebAuthn). The passkey lives in her Passwords app.
 // Its PRF feature gives back the same secret each time Face ID succeeds, and
 // that secret unlocks her data key. No server is involved: the app only needs the secret.
 
 import { randomBytes } from './crypto.js';
 
-export class NoPrfError extends Error {}
+// reason: a short code shown on screen, to help work out what happened
+export class NoPrfError extends Error {
+  constructor(reason) {
+    super('This passkey cannot give the app its secret');
+    this.reason = reason;
+  }
+}
 
 export const passkeysAvailable = () => !!window.PublicKeyCredential;
 
-// Create the passkey and get its secret (may ask for Face ID twice on some phones)
+// Create the passkey. Some phones hand back the secret straight away; others only
+// when the passkey is first used, so secret may be null (see passkeySecret).
 export async function createPasskey(prfSalt) {
   const cred = await navigator.credentials.create({
     publicKey: {
@@ -25,10 +32,13 @@ export async function createPasskey(prfSalt) {
     },
   });
   const prf = cred.getClientExtensionResults().prf;
-  if (!prf?.enabled) throw new NoPrfError('This phone cannot use Face ID for this app');
-  const credId = new Uint8Array(cred.rawId);
-  const secret = prf.results?.first ? new Uint8Array(prf.results.first) : await passkeySecret(credId, prfSalt);
-  return { credId, secret };
+  const first = prf?.results?.first;
+  return {
+    credId: new Uint8Array(cred.rawId),
+    secret: first ? new Uint8Array(first) : null,
+    // false means the passkey said it can't do PRF; undefined means it didn't say
+    prfEnabled: prf?.enabled,
+  };
 }
 
 // Ask for Face ID and get the passkey's secret
@@ -43,6 +53,6 @@ export async function passkeySecret(credId, prfSalt) {
     },
   });
   const first = cred.getClientExtensionResults().prf?.results?.first;
-  if (!first) throw new NoPrfError('Face ID did not return a secret');
+  if (!first) throw new NoPrfError('no-secret-on-use');
   return new Uint8Array(first);
 }

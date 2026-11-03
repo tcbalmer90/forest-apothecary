@@ -3,7 +3,8 @@
 import { state, saveMed, saveSetting, activeMeds } from './state.js';
 import { openSheet, closeSheet, toast } from './sheet.js';
 import { tabletsLeft, tracksStock, countedLabel } from './stock.js';
-import { phraseFlow, showLockLayer, hideLockLayer } from './lock.js';
+import { phraseFlow, showLockLayer, hideLockLayer, tapToFinish } from './lock.js';
+import { NoPrfError } from './passkey.js';
 import { renewPhrase, renewFaceId } from './vault.js';
 import { newPhrase } from './crypto.js';
 import { bottleSVG, COLOURS } from './bottle.js';
@@ -69,10 +70,14 @@ export function renderSettings(main) {
   });
   view.querySelector('[data-faceid]').addEventListener('click', async () => {
     try {
-      await renewFaceId();
-      toast('Face ID is set up again.');
-    } catch {
-      toast("That didn't go through. Your old Face ID still works.");
+      await renewFaceId((fn) => { showLockLayer(); return tapToFinish(fn); });
+      toast('Face ID is set up. It opens your pages from now on.');
+    } catch (e) {
+      toast(e instanceof NoPrfError
+        ? `Face ID couldn't be set up (${e.reason}). Check the passkey is saved in Apple's Passwords app.`
+        : "That didn't go through. Nothing has changed.");
+    } finally {
+      hideLockLayer();
     }
   });
 

@@ -8,7 +8,7 @@ import {
   randomBytes, newDataKeyBytes, importDataKey, keyFromPrf, keyFromPhrase, seal, unseal, PHRASE_ITERATIONS,
   sealedToText, sealedFromText, toBase64, fromBase64,
 } from './crypto.js';
-import { createPasskey, passkeySecret } from './passkey.js';
+import { createPasskey, passkeySecret, NoPrfError } from './passkey.js';
 
 let dataKeyBytes = null; // kept only in memory, only while unlocked
 
@@ -25,17 +25,30 @@ async function phraseSeal(phrase) {
   return { phraseSalt, iterations: PHRASE_ITERATIONS, byPhrase: await seal(lockKey, dataKeyBytes) };
 }
 
-async function faceIdSeal() {
+// askTap(fn) runs fn after a fresh tap. Some phones only give the secret when the new
+// passkey is first used, and iPhones want a tap before each Face ID request.
+const now = (fn) => fn();
+
+async function faceIdSeal(askTap = now) {
   const prfSalt = randomBytes(32);
-  const { credId, secret } = await createPasskey(prfSalt);
-  return { mode: 'faceid', credId, prfSalt, byFaceId: await seal(await keyFromPrf(secret, prfSalt), dataKeyBytes) };
+  const { credId, secret, prfEnabled } = await createPasskey(prfSalt);
+  let key = secret;
+  if (!key) {
+    try {
+      key = await askTap(() => passkeySecret(credId, prfSalt));
+    } catch (e) {
+      if (e instanceof NoPrfError && prfEnabled === false) e.reason = 'prf-not-supported';
+      throw e;
+    }
+  }
+  return { mode: 'faceid', credId, prfSalt, byFaceId: await seal(await keyFromPrf(key, prfSalt), dataKeyBytes) };
 }
 
 // First set-up, in two parts. Face ID comes first, so a refusal is found
 // before she writes anything down. Nothing is saved until finishVault.
-export async function prepareFaceId() {
+export async function prepareFaceId(askTap) {
   dataKeyBytes = newDataKeyBytes();
-  return faceIdSeal();
+  return faceIdSeal(askTap);
 }
 
 export async function finishVault(face, phrase) {
@@ -76,9 +89,9 @@ export async function keyFromBackup(lock, phrase) {
 }
 
 // First set-up from a backup: keep the backup's key and phrase, add Face ID if possible
-export async function adoptBackupKey(keyBytes, lock, { faceId }) {
+export async function adoptBackupKey(keyBytes, lock, { faceId, askTap }) {
   dataKeyBytes = keyBytes;
-  const face = faceId ? await faceIdSeal() : { mode: 'phrase' };
+  const face = faceId ? await faceIdSeal(askTap) : { mode: 'phrase' };
   await db.putVault({
     id: 'vault',
     ...face,
@@ -90,9 +103,9 @@ export async function adoptBackupKey(keyBytes, lock, { faceId }) {
 }
 
 // While unlocked: replace the Face ID passkey (e.g. after a phrase unlock)
-export async function renewFaceId() {
+export async function renewFaceId(askTap) {
   const vault = await loadVault();
-  await db.putVault({ ...vault, ...(await faceIdSeal()) });
+  await db.putVault({ ...vault, ...(await faceIdSeal(askTap)) });
 }
 
 // While unlocked: replace the recovery phrase
